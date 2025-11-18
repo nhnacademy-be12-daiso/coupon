@@ -58,27 +58,27 @@ jobs:
           script: |
             set -e
             
-            echo "🔄 Shop 배포 시작..."
+            echo "🔄 Coupon 배포 시작..."
             
             # 네트워크 보장
             docker network create my-network || true
             
             # 기존 컨테이너 정리 (이름: coupon)
             if [ "$(docker ps -aq -f name=coupon)" ]; then
-                echo "🧹 기존 Shop 컨테이너 삭제..."
+                echo "🧹 기존 Coupon 컨테이너 삭제..."
                 docker rm -f coupon
             fi
             
             # 이미지 Pull
             docker pull ${{ secrets.DOCKER_USERNAME }}/coupon:latest
             
-            # ★ Shop 실행
+            # ★ Coupon 실행
             # - 포트: 없음 (외부 노출 X, Gateway 통해서만 접근)
-            # - 이름: shop
+            # - 이름: coupon
             # - 네트워크: my-network
-            echo "🚀 Shop 실행 중..."
+            echo "🚀 Coupon 실행 중..."
             docker run -d \
-              --name shop \
+              --name coupon \
               --network my-network \
               --restart unless-stopped \
               -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE="http://eureka:8761/eureka/" \
