@@ -3,14 +3,34 @@ POST http://localhost:8080/api/coupons
 Content-Type: application/json
 
 {
-     "couponName": "생일 축하 쿠폰",
-     "discountWay": "FIXED_AMOUNT",
-     "discount": 10000,
-     "categoryId": null,
-     "targetBookId": null,
-     "isBirthday": true,
-     "isWelcome": false,
-     "minOrderAmount": 50000,
-     "maxDiscountAmount": null,
-     "availabilityDays": 30
-  }
+    "couponName": "생일 축하 쿠폰",
+    "discountWay": "FIXED_AMOUNT",
+    "discount": 10000,
+    "categoryId": null,
+    "targetBookId": null,
+    "isBirthday": true,
+    "isWelcome": false,
+    "minOrderAmount": 50000,
+    "maxDiscountAmount": null,
+    "availabilityDays": 30
+}
+
+### 사용자에게 쿠폰 발급
+POST http://localhost:8080/api/coupons/issue
+Content-Type: application/json
+
+{
+  "userId": 0,
+  "couponId": 1
+}
+
+### 쿠폰 적용
+POST http://localhost:8080/api/coupons/1/apply?bigDecimal=50000
+Content-Type: application/json
+
+### 사용 가능한 쿠폰 조회
+GET http://localhost:8080/users/1/available
+
+
+### 사용자 쿠폰 목록 조회
+GET http://localhost:8080/api/coupons/users/1

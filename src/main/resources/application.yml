@@ -19,3 +19,16 @@ springdoc:
     path: /swagger-ui.html  # Swagger UI 경로
     tags-sorter: alpha  # 태그 알파벳 순 정렬
     operations-sorter: alpha  # API 알파벳 순 정렬
+
+server:
+  port: 8082
+
+
+eureka:
+  client:
+    register-with-eureka: true # 유레카 서버에 등록할지 여부
+    fetch-registry: true # 유레카 서버의 정보를 가져올지 여부
+    service-url:
+      # 유레카 client와 server를 연결하는 url 주소
+      defaultZone: http://eureka:8761/eureka/
+#      defaultZone: http://localhost:8761/eureka/
