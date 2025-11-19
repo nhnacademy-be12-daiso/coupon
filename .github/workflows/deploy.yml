@@ -1,4 +1,4 @@
-name: Coupon - Build and Deploy
+name: Coupon - Build and Deploy (Compose)
 
 on:
   push:
@@ -11,11 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. JDK 21 설정
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
@@ -23,31 +21,26 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # 3. Maven 빌드
       - name: Build with Maven
         run: |
           chmod +x ./mvnw
           ./mvnw clean package
 
-      # 4. Docker 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 5. Docker 이미지 빌드 및 푸시
       - name: Docker Coupon image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: true
-          # ★ 이미지 이름을 coupon으로 변경
-          tags: ${{ secrets.DOCKER_USERNAME }}/coupon:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/team3-coupon:latest
 
-      # 6. 서버 배포
-      - name: Deploy to Server
+      - name: Deploy to Server (Docker Compose Orchestration)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -57,28 +50,17 @@ jobs:
           script: |
             set -e
             
-            echo "🔄 Coupon 배포 시작..."
+            echo "team3-coupon 배포 시작 (Compose Integration)..."
             
-            # 네트워크 보장
-            docker network create team3-network || true
+            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+            export DOCKER_PASSWORD="${{ secrets.DOCKER_PASSWORD }}"
+
+            cd ~/infra
+
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
             
-            docker rm -f coupon || true
+            docker compose --env-file .env up -d --no-deps --force-recreate team3-coupon
             
-            # 이미지 Pull
-            docker pull ${{ secrets.DOCKER_USERNAME }}/coupon:latest
-            
-            # ★ Coupon 실행
-            # - 포트: 없음 (외부 노출 X, Gateway 통해서만 접근)
-            # - 이름: coupon
-            # - 네트워크: team3-network
-            echo "🚀 Coupon 실행 중..."
-            docker run -d \
-              --name coupon \
-              --network team3-network \
-              --restart unless-stopped \
-              -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE="http://eureka:8761/eureka/" \
-              ${{ secrets.DOCKER_USERNAME }}/coupon:latest
-            
-            # 실행 확인
+            echo "team3-coupon 실행 완료!"
             sleep 5
-            docker logs --tail 20 coupon
+            docker logs --tail 20 team3-coupon

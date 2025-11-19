@@ -1,10 +1,137 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>쿠폰 관리 페이지</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .coupon-form { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 8px; max-width: 500px; }
+        .coupon-form h2 { margin-top: 0; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
 </head>
 <body>
-<h1>쿠폰 유레카 연결 hihihihi</h1>
+
+<h1>쿠폰 발급 창</h1>
+
+<div class="coupon-form">
+    <h2>🎂 생일 쿠폰 등록</h2>
+    <form id="birthdayCouponForm">
+        <div class="form-group">
+            <label>쿠폰 이름</label>
+            <input type="text" name="couponName" value="생일 축하 쿠폰" required>
+        </div>
+        <div class="form-group">
+            <label>할인 방식</label>
+            <select name="discountWay">
+                <option value="FIXED_AMOUNT">정액 할인 (FIXED_AMOUNT)</option>
+                <option value="RATIO">정률 할인 (RATIO)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>할인 금액/비율</label>
+            <input type="number" name="discount" placeholder="예: 1000 또는 10" required>
+        </div>
+        <div class="form-group">
+            <label>최소 주문 금액</label>
+            <input type="number" name="minOrderAmount" value="0">
+        </div>
+        <div class="form-group">
+            <label>최대 할인 금액 (정률 할인 시)</label>
+            <input type="number" name="maxDiscountAmount">
+        </div>
+        <div class="form-group">
+            <label>사용 가능 일수</label>
+            <input type="number" name="availabilityDays" value="30" required>
+        </div>
+        <button type="submit">생일 쿠폰 생성</button>
+    </form>
+</div>
+
+<div class="coupon-form">
+    <h2>🎉 웰컴 쿠폰 등록</h2>
+    <form id="welcomeCouponForm">
+        <div class="form-group">
+            <label>쿠폰 이름</label>
+            <input type="text" name="couponName" value="신규 가입 환영 쿠폰" required>
+        </div>
+        <div class="form-group">
+            <label>할인 방식</label>
+            <select name="discountWay">
+                <option value="FIXED_AMOUNT">정액 할인 (FIXED_AMOUNT)</option>
+                <option value="RATIO">정률 할인 (RATIO)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>할인 금액/비율</label>
+            <input type="number" name="discount" placeholder="예: 5000 또는 20" required>
+        </div>
+        <div class="form-group">
+            <label>최소 주문 금액</label>
+            <input type="number" name="minOrderAmount" value="0">
+        </div>
+        <div class="form-group">
+            <label>최대 할인 금액 (정률 할인 시)</label>
+            <input type="number" name="maxDiscountAmount">
+        </div>
+        <div class="form-group">
+            <label>사용 가능 일수</label>
+            <input type="number" name="availabilityDays" value="7" required>
+        </div>
+        <button type="submit">웰컴 쿠폰 생성</button>
+    </form>
+</div>
+
+<script>
+    async function createCoupon(event, type) {
+        event.preventDefault(); // 폼 기본 제출 동작 방지
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        // JSON 데이터 생성
+        const data = {
+            couponName: formData.get('couponName'),
+            discountWay: formData.get('discountWay'),
+            discount: parseFloat(formData.get('discount')),
+            minOrderAmount: formData.get('minOrderAmount') ? parseInt(formData.get('minOrderAmount')) : 0,
+            maxDiscountAmount: formData.get('maxDiscountAmount') ? parseInt(formData.get('maxDiscountAmount')) : null,
+            availabilityDays: parseInt(formData.get('availabilityDays')),
+            // 쿠폰 타입에 따른 플래그 설정
+            isBirthday: type === 'birthday',
+            isWelcome: type === 'welcome'
+        };
+
+        try {
+            const response = await fetch('/api/coupons', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                alert((type === 'birthday' ? '생일' : '웰컴') + ' 쿠폰이 성공적으로 생성되었습니다!');
+                form.reset(); // 폼 초기화
+            } else {
+                const errorData = await response.json(); // 에러 응답이 JSON이라면
+                alert('쿠폰 생성 실패: ' + (errorData.message || response.statusText));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('서버 통신 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 이벤트 리스너 등록
+    document.getElementById('birthdayCouponForm').addEventListener('submit', (e) => createCoupon(e, 'birthday'));
+    document.getElementById('welcomeCouponForm').addEventListener('submit', (e) => createCoupon(e, 'welcome'));
+</script>
+
 </body>
 </html>
