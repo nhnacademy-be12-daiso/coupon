@@ -2,8 +2,6 @@ package com.nhnacademy.coupon.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,38 +16,26 @@ public class Coupon {
     @Column(name = "coupon_id")
     private Long couponId;
 
-    @Column(name = "coupon_name", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coupon_policy_id")
+    private CouponPolicy couponPolicy;
+
+    @Column(name = "coupon_name", nullable = false) // 이름 값 필수
     private String couponName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "discount_way")
-    private DiscountWay discountWay;
+    @Column(name = "issue_limit") // 쿠폰 발급 한도
+    private Long issueLimit;
 
-    @Column(name = "discount")
-    private BigDecimal discount;
+    @Column(name = "issue_count", nullable = false) // 쿠폰 현재 발급 수
+    private long issueCount = 0;
 
-    @Column(name = "category_id")
-    private Long categoryId;
+    @Column(name = "valid_days") // 쿠폰 유효일수
+    private Integer validDays;
 
-    @Column(name = "target_book_id") // 도서 아이디
-    private Long targetBookId;
+    @Column(name = "valid_start_date") // 쿠폰 유효기간 시작일
+    private LocalDateTime validStartDate;
 
-    @Column(name = "is_birthday", nullable = false) // 생일 쿠폰 여부
-    private boolean isBirthday;
+    @Column(name = "valid_end_date") // 쿠폰 유효기간 끝나는일
+    private LocalDateTime validEndDate;
 
-    @Column(name = "is_welcome", nullable = false) // 왤컴 쿠폰 여부
-    private boolean isWelcome = false;
-
-    @Column(name = "min_order_amount") // 최소 주문 금액
-    private Long minOrderAmount;
-
-    @Column(name = "max_discount_amount") // 최대 할인 금액
-    private Long maxDiscountAmount;
-
-    @Column(name = "availability_days") // 사용 가능한 기간
-    private Integer availabilityDays;
-
-    @Builder.Default
-    @Column(name = "created_at", updatable = false, nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }

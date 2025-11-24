@@ -30,8 +30,9 @@ public class UserCouponController {
     }
 
     @Operation(summary = "Welcome 쿠폰 발급", description = "회원가입 완료 시 시스템이 자동으로 호출하는 API입니다.")
+    @PostMapping("/welcome/{userId}")
     public ResponseEntity<Void> issueWelcomeCoupon(@PathVariable Long userId){
-        couponService.issueWelcomCoupon(userId);
+        couponService.issueWelcomeCoupon(userId);
         return ResponseEntity.ok().build();
     }
 

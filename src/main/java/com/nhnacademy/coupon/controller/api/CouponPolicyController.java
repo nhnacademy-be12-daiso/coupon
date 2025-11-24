@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Coupon Policy", description = "쿠폰 정책 관리 (관리자용)")
 @RestController
-@RequestMapping("/api/coupons")
+@RequestMapping("/api/coupons/create")
 public class CouponPolicyController {
 
     private final CouponServiceImpl couponServiceImpl;

@@ -20,7 +20,7 @@ public interface CouponService {
     UserCouponResponse issueCoupon(Long userId, UserCouponIssueRequest request);
 
     // Welcome 쿠폰 발급
-    void issueWelcomCoupon(Long userId);
+    void issueWelcomeCoupon(Long userId);
 
     // 쿠폰 사용 (주문 시)
     CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount);

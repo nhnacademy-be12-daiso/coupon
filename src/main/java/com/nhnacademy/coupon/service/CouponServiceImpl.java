@@ -81,7 +81,7 @@ public class CouponServiceImpl implements CouponService {
     // Welcome 쿠폰 발급
     @Override
     @Transactional
-    public void issueWelcomCoupon(Long userId){
+    public void issueWelcomeCoupon(Long userId){
         List<Coupon> welcomeCoupons = couponRepository.findByIsWelcomeTrue();
 
         if(welcomeCoupons.isEmpty()){
@@ -91,6 +91,13 @@ public class CouponServiceImpl implements CouponService {
         // Welcome 쿠폰 발급 (정책: 50,000 이상 구매 시 10.000 할인, 30일)
         for (Coupon coupon : welcomeCoupons) {
             try{
+
+                boolean alreadyHas = userCouponRepository.existsByUserIdAndCoupon_CouponId(userId, coupon.getCouponId()); // userId가 이 쿠폰 정책으로 발급 내역이 있는가?!
+
+                if(alreadyHas){
+                    log.warn("이미 지급된 Welcome 쿠폰입니다: userId={}, couponId={}",userId, coupon.getCouponId());
+                    continue;
+                }
                 UserCouponIssueRequest request = new UserCouponIssueRequest(coupon.getCouponId());
 
                 issueCoupon(userId,request);
