@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>쿠폰 정책 관리 (관리자)</title>
+    <style>
+        body { font-family: 'Apple SD Gothic Neo', sans-serif; padding: 40px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        input:focus, select:focus { border-color: #007bff; outline: none; }
+        button { width: 100%; padding: 15px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .help-text { font-size: 12px; color: #888; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📋 쿠폰 할인 정책 생성</h2>
+    <form id="policyForm">
+
+        <div class="form-group">
+            <label>할인 방식 (Discount Way)</label>
+            <select name="discountWay" id="discountWay" required onchange="toggleMaxDiscount()">
+                <option value="FIXED_AMOUNT">정액 할인 (원)</option>
+                <option value="RATIO">정률 할인 (%)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>할인 값 (Discount Value)</label>
+            <input type="number" name="couponDiscount" placeholder="예: 1000 또는 10" required>
+            <div class="help-text">정액이면 원 단위, 정률이면 % 단위를 입력하세요.</div>
+        </div>
+
+        <div class="form-group">
+            <label>최소 주문 금액 (Min Order Amount)</label>
+            <input type="number" name="minOrderAmount" placeholder="0" value="0">
+            <div class="help-text">이 금액 이상 구매해야 쿠폰 사용 가능 (0이면 제한 없음)</div>
+        </div>
+
+        <div class="form-group">
+            <label>최대 할인 한도 (Max Discount Amount)</label>
+            <input type="number" name="maxDiscountAmount" id="maxDiscountInput" placeholder="없음" disabled>
+            <div class="help-text">정률 할인 시 최대 얼마까지 깎아줄지 설정 (정액 할인은 비활성)</div>
+        </div>
+
+        <button type="submit">정책 생성하기</button>
+    </form>
+</div>
+
+<script>
+    // 정률(%)일 때만 '최대 할인 한도' 입력 가능하게 함
+    function toggleMaxDiscount() {
+        const way = document.getElementById('discountWay').value;
+        const maxInput = document.getElementById('maxDiscountInput');
+
+        if (way === 'RATIO') {
+            maxInput.disabled = false;
+            maxInput.placeholder = "예: 10000 (최대 1만원 할인)";
+        } else {
+            maxInput.disabled = true;
+            maxInput.value = ''; // 값 초기화
+            maxInput.placeholder = "정액 할인은 설정 불가능";
+        }
+    }
+
+    // 폼 전송 로직
+    document.getElementById('policyForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+
+        // DTO 필드명에 맞춰서 JSON 생성
+        const data = {
+            discountWay: formData.get('discountWay'),
+            couponDiscount: parseInt(formData.get('couponDiscount')),
+            minOrderAmount: parseInt(formData.get('minOrderAmount')) || 0,
+            maxDiscountAmount: formData.get('maxDiscountAmount') ? parseInt(formData.get('maxDiscountAmount')) : null
+        };
+
+        try {
+            // [중요] 정책 컨트롤러로 보냅니다.
+            const response = await fetch('/api/coupon-policies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                alert('새로운 할인 정책이 생성되었습니다! (ID 발급됨)');
+                e.target.reset();
+                toggleMaxDiscount(); // UI 초기화
+            } else {
+                const err = await response.text();
+                alert('실패: ' + err);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('서버 오류 발생');
+        }
+    });
+</script>
+
+</body>
+</html>

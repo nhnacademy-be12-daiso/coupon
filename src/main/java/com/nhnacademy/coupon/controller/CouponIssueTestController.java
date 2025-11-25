@@ -5,11 +5,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/coupons/test")
+@RequestMapping("/coupons/show")
 public class CouponIssueTestController {
 
     @GetMapping
     public String test(){
-        return "test";
+        return "couponPolicyCreate";
     }
 }
