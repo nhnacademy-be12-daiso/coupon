@@ -1,58 +1,61 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: true
+
 spring:
+  profiles:
+    active: dev
   application:
     name: team3-coupon
-
-  # === [기존 H2 설정 주석 보존] ===
-  #  h2:
-  #    console:
-  #      enabled: true
-  #      path: /h2-console # 콘솔 접속 URL 경로
-  #  datasource:
-  #    # JDBC URL 설정 (인메모리 데이터베이스는 보통 이 설정을 사용하며, URL을 명시적으로 지정해주는 것이 좋습니다.)
-  #    url: jdbc:h2:mem:coupon_db
-  #    driver-class-name: org.h2.Driver
-  #    username: sa
-  #    password:
-
-  # === [MySQL DB 설정 추가] ===
   datasource:
-    url: jdbc:mysql://s4.java21.net:13306/project_be12_team3?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
-    username: project_be12_team3
-    password: Vu52gc0i(mNxDJyI
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  # === [JPA 설정 추가] ===
   jpa:
-    show-sql: true
-    open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: update # 개발용
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true     # SQL 로그 보기
     properties:
       hibernate:
-        show_sql: true
         format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
 
-springdoc:
-  api-docs:
-    path: /api-docs  # OpenAPI JSON 경로
-  swagger-ui:
-    path: /swagger-ui.html  # Swagger UI 경로
-    tags-sorter: alpha  # 태그 알파벳 순 정렬
-    operations-sorter: alpha  # API 알파벳 순 정렬
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
+      password: ${SPRING_DATA_REDIS_PASSWORD}
+      database: ${SPRING_DATA_REDIS_DATABASE}
 
-server:
-  port: 8082
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
 
 eureka:
+  instance:
+    prefer-ip-address: true
   client:
-    register-with-eureka: true # 유레카 서버에 등록할지 여부
-    fetch-registry: true # 유레카 서버의 정보를 가져올지 여부
+    register-with-eureka: true
+    fetch-registry: true
     service-url:
-      # 유레카 client와 server를 연결하는 url 주소
-      defaultZone: http://team3-eureka:8761/eureka/
-#      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
 
 jwt:
-  secret: "v3s5v8y/B?E(H+MbQeThWmZq4t7w9z$C&F)J@NcRfUjXn2r5u8x/A?D(G+KaPdSg"
+  secret: "c3ByaW5nLWJvb3Qtc2VjdXJpdHktand0LXR1dG9yaWFsLXNlY3JldC1rZXktZ2VuZXJhdGVkLWJ5LWJhc2U2NC1lbmNvZGVyLXRlc3QtMTIzNDU2Nzg5MA=="
+  access-token-expiration: 3600000    # 1시간
+  refresh-token-expiration: 1209600000 # 14일
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
