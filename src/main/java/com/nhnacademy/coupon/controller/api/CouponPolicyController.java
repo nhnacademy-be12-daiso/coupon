@@ -2,7 +2,7 @@ package com.nhnacademy.coupon.controller.api;
 
 import com.nhnacademy.coupon.dto.request.CouponCreateRequest;
 import com.nhnacademy.coupon.dto.response.CouponResponse;
-import com.nhnacademy.coupon.service.CouponServiceImpl;
+import com.nhnacademy.coupon.service.CouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/coupons/create")
 public class CouponPolicyController {
 
-    private final CouponServiceImpl couponServiceImpl;
+    private final CouponService couponService;
 
-    public CouponPolicyController(CouponServiceImpl couponServiceImpl) {
-        this.couponServiceImpl = couponServiceImpl;
+    public CouponPolicyController(CouponService couponService) {
+        this.couponService = couponService;
     }
 
     @Operation(summary = "쿠폰 정책 생성", description = "새로운 쿠폰 정책을 생성합니다.")
@@ -27,7 +27,7 @@ public class CouponPolicyController {
             @RequestHeader(value = "X-Gateway-Pass", required = false) String gatewayPass,
             @Valid @RequestBody CouponCreateRequest request) {
         System.out.println(gatewayPass);
-        CouponResponse response = couponServiceImpl.createCoupon(request);
+        CouponResponse response = couponService.createCoupon(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

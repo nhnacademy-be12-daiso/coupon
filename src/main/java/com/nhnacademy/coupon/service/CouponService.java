@@ -5,6 +5,7 @@ import com.nhnacademy.coupon.dto.request.UserCouponIssueRequest;
 import com.nhnacademy.coupon.dto.response.CouponApplyResponse;
 import com.nhnacademy.coupon.dto.response.CouponResponse;
 import com.nhnacademy.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.entity.CouponPolicy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -25,7 +26,7 @@ public interface CouponService {
     CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount);
 
     // 쿠폰 할인 계산
-    BigDecimal calculateDiscount(Coupon coupon, BigDecimal orderAmount);
+    BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount);
 
     // 사용자 쿠폰 목록 조회
     Page<UserCouponResponse> getUserCoupons(Long userId, Pageable pageable);

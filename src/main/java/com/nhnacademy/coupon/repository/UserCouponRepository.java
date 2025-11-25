@@ -24,11 +24,7 @@ public interface UserCouponRepository extends JpaRepository<UserCoupon, Long> {
     // 특정 사용자의 사용 가능한 쿠폰 조회 (ISSUED 또는 CANCELED)
     List<UserCoupon> findByUserIdAndStatusIn(Long userId, List<CouponStatus> statuses);
 
-    // ✅ 추가: 만료 대상 쿠폰 조회 (배치용)
-    @Query("SELECT uc FROM UserCoupon uc " +
-            "WHERE uc.status = 'ISSUED' " +
-            "AND uc.expiryAt < :now")
-    List<UserCoupon> findAllExpiredCoupons(@Param("now") LocalDateTime now);
-    // 특정 사용자의 특정 쿠폰 소유 여부 확인
-    boolean existsByUserIdAndCoupon_CouponId(Long userId, Long couponId);
+    boolean existsByUserIdAndCouponPolicy_CouponPolicyId(Long userId, Long couponPolicyId);
+
+    List<UserCoupon> findAllByStatusAndExpiryAtBefore(CouponStatus status, LocalDateTime expiryAtBefore);
 }
