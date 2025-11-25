@@ -50,11 +50,6 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
 
-jwt:
-  secret: "c3ByaW5nLWJvb3Qtc2VjdXJpdHktand0LXR1dG9yaWFsLXNlY3JldC1rZXktZ2VuZXJhdGVkLWJ5LWJhc2U2NC1lbmNvZGVyLXRlc3QtMTIzNDU2Nzg5MA=="
-  access-token-expiration: 3600000    # 1시간
-  refresh-token-expiration: 1209600000 # 14일
-
 logging:
   level:
     org.springframework.security: DEBUG
