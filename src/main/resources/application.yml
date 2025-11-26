@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: team3-coupon
 
@@ -32,7 +34,13 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
+<<<<<<< HEAD
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+=======
+      # 유레카 client와 server를 연결하는 url 주소
+      defaultZone: http://team3-eureka:8761/eureka/
+#      defaultZone: http://localhost:8761/eureka/
+>>>>>>> 43ab42648282a50e8471381def14b5e726090895
 
 logging:
   level:
