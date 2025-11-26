@@ -4,7 +4,7 @@ import com.nhnacademy.coupon.global.annotation.CurrentUserId;
 import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
-import com.nhnacademy.coupon.domain.coupon.service.CouponService;
+import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,16 +22,16 @@ import java.util.List;
 @RequestMapping("/api/coupons")
 public class UserCouponController {
 
-    private final CouponService couponService;
+    private final CouponPolicyService couponPolicyService;
 
-    public UserCouponController(CouponService couponService) {
-        this.couponService = couponService;
+    public UserCouponController(CouponPolicyService couponPolicyService) {
+        this.couponPolicyService = couponPolicyService;
     }
 
     @Operation(summary = "Welcome 쿠폰 발급", description = "회원가입 완료 시 시스템이 자동으로 호출하는 API입니다.")
     @PostMapping("/welcome/{userId}")
     public ResponseEntity<Void> issueWelcomeCoupon(@PathVariable Long userId){
-        couponService.issueWelcomeCoupon(userId);
+        couponPolicyService.issueWelcomeCoupon(userId);
         return ResponseEntity.ok().build();
     }
 
@@ -40,21 +40,21 @@ public class UserCouponController {
     public ResponseEntity<UserCouponResponse> issueCoupon(
             @CurrentUserId Long userId,  // 토큰에서 검증된 진짜 ID
             @Valid @RequestBody UserCouponIssueRequest request) {
-        UserCouponResponse response = couponService.issueCoupon(userId, request);
+        UserCouponResponse response = couponPolicyService.issueCoupon(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Operation(summary = "내 쿠폰 목록 조회")
     @GetMapping("/users/{userId}")
     public ResponseEntity<Page<UserCouponResponse>> getUserCoupons(@PathVariable Long userId, Pageable pageable) {
-        Page<UserCouponResponse> response = couponService.getUserCoupons(userId, pageable);
+        Page<UserCouponResponse> response = couponPolicyService.getUserCoupons(userId, pageable);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "사용 가능한 쿠폰 조회")
     @GetMapping("/users/{userId}/available")
     public ResponseEntity<List<UserCouponResponse>> getAvailableCoupons(@PathVariable Long userId) {
-        List<UserCouponResponse> response = couponService.getAvailableCoupons(userId);
+        List<UserCouponResponse> response = couponPolicyService.getAvailableCoupons(userId);
         return ResponseEntity.ok(response);
     }
 
@@ -64,7 +64,7 @@ public class UserCouponController {
             @PathVariable Long userCouponId,
             @RequestParam BigDecimal price) {
 
-        CouponApplyResponse response = couponService.applyCoupon(userCouponId, price);
+        CouponApplyResponse response = couponPolicyService.applyCoupon(userCouponId, price);
         return ResponseEntity.ok(response);
     }
 }

@@ -1,9 +1,9 @@
 package com.nhnacademy.coupon.domain.coupon.service;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import org.springframework.data.domain.Page;
@@ -12,9 +12,12 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.List;
 
-public interface CouponService {
+public interface CouponPolicyService {
     // 쿠폰 정책 생성
-    CouponResponse createCoupon(CouponCreateRequest request);
+    CouponPolicyResponse createCoupon(CouponPolicyCreateRequest request);
+
+    // 쿠폰 정책 전체 조회
+    List<CouponPolicyResponse> couponPolices();
 
     // 사용자에게 쿠폰 발급
     UserCouponResponse issueCoupon(Long userId, UserCouponIssueRequest request);

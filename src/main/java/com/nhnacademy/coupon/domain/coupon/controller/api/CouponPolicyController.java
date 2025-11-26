@@ -1,8 +1,8 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponCreateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponResponse;
-import com.nhnacademy.coupon.domain.coupon.service.CouponService;
+import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -10,24 +10,33 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Coupon Policy", description = "쿠폰 정책 관리 (관리자용)")
 @RestController
-@RequestMapping("/api/coupons/create")
+@RequestMapping("/api/coupons")
 public class CouponPolicyController {
 
-    private final CouponService couponService;
+    private final CouponPolicyService couponPolicyService;
 
-    public CouponPolicyController(CouponService couponService) {
-        this.couponService = couponService;
+    public CouponPolicyController(CouponPolicyService couponPolicyService) {
+        this.couponPolicyService = couponPolicyService;
     }
 
     @Operation(summary = "쿠폰 정책 생성", description = "새로운 쿠폰 정책을 생성합니다.")
-    @PostMapping
-    public ResponseEntity<CouponResponse> createCoupon(
+    @PostMapping("/create")
+    public ResponseEntity<CouponPolicyResponse> createCoupon(
             @RequestHeader(value = "X-Gateway-Pass", required = false) String gatewayPass,
-            @Valid @RequestBody CouponCreateRequest request) {
+            @Valid @RequestBody CouponPolicyCreateRequest request) {
         System.out.println(gatewayPass);
-        CouponResponse response = couponService.createCoupon(request);
+        CouponPolicyResponse response = couponPolicyService.createCoupon(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "쿠폰 정책 조회", description = "쿠폰 정책을 모두 조회합니다")
+    @GetMapping("/policies")
+    public ResponseEntity<List<CouponPolicyResponse>> getPolicies(){
+        List<CouponPolicyResponse> couponPolicies = couponPolicyService.couponPolices();
+        return ResponseEntity.ok(couponPolicies);
     }
 }

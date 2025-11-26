@@ -1,16 +1,16 @@
 package com.nhnacademy.coupon.domain.coupon.service.impl;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
-import com.nhnacademy.coupon.domain.coupon.service.CouponService;
+import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
@@ -23,40 +23,39 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 @Service
-public class CouponServiceImpl implements CouponService {
+public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     private final CouponPolicyRepository couponPolicyRepository;
     private final UserCouponRepository userCouponRepository;
 
-    public CouponServiceImpl(CouponPolicyRepository couponPolicyRepository, UserCouponRepository userCouponRepository) {
+    public CouponPolicyServiceImpl(CouponPolicyRepository couponPolicyRepository, UserCouponRepository userCouponRepository) {
         this.couponPolicyRepository = couponPolicyRepository;
         this.userCouponRepository = userCouponRepository;
     }
 
     // 쿠폰 정책 생성
     @Transactional
-    public CouponResponse createCoupon(CouponCreateRequest request){
-        CouponPolicy coupon = CouponPolicy.builder()
-                .couponPolicyName(request.getCouponPolicyName())
-                .couponType(request.getCouponType())
-                .discountWay(request.getDiscountWay())
-                .discountAmount(request.getDiscountAmount())
-                .minOrderAmount(request.getMinOrderAmount())
-                .maxDiscountAmount(request.getMaxDiscountAmount())
-                .validDays(request.getValidDays())
-                .validStartDate(request.getValidStartDate())
-                .validEndDate(request.getValidEndDate())
-                .quantity(request.getQuantity())
-                .couponPolicyStatus(request.getCouponPolicyStatus())
-                .build();
-
-        CouponPolicy saved = couponPolicyRepository.save(coupon);
+    public CouponPolicyResponse createCoupon(CouponPolicyCreateRequest request){
+        // dto -> entity
+        CouponPolicy saved = couponPolicyRepository.save(request.toEntity());
         return convertToResponse(saved);
     }
+    // 쿠폰 정책 전체 조회
+    @Override
+    public List<CouponPolicyResponse> couponPolices() {
+        List<CouponPolicy> policies = couponPolicyRepository.findAll();
+        ArrayList<CouponPolicyResponse> responses = new ArrayList<>();
+        for (CouponPolicy policy : policies) {
+            responses.add(convertToResponse(policy));
+        }
+        return responses;
+    }
+
     // 사용자에게 쿠폰 발급
     @Override
     @Transactional
@@ -208,8 +207,8 @@ public class CouponServiceImpl implements CouponService {
 
 
 
-    private CouponResponse convertToResponse(CouponPolicy policy) {
-        return CouponResponse.builder()
+    private CouponPolicyResponse convertToResponse(CouponPolicy policy) {
+        return CouponPolicyResponse.builder()
                 .couponPolicyId(policy.getCouponPolicyId())
                 .couponPolicyName(policy.getCouponPolicyName())
                 .couponType(policy.getCouponType())
@@ -220,7 +219,8 @@ public class CouponServiceImpl implements CouponService {
                 .validDays(policy.getValidDays())
                 .validStartDate(policy.getValidStartDate())
                 .validEndDate(policy.getValidEndDate())
-                .status(policy.getCouponPolicyStatus())
+                .policyStatus(policy.getCouponPolicyStatus())
+                .quantity(policy.getQuantity())
                 .build();
     }
     private UserCouponResponse convertToUserCouponResponse(UserCoupon userCoupon) {

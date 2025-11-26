@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Schema(description = "쿠폰 정책 응답")
 @Builder
-public record CouponResponse(
+public record CouponPolicyResponse(
         Long couponPolicyId,
         String couponPolicyName,
         CouponType couponType,
@@ -22,6 +22,7 @@ public record CouponResponse(
         Integer validDays,
         LocalDateTime validStartDate,
         LocalDateTime validEndDate,
-        CouponPolicyStatus status
+        CouponPolicyStatus policyStatus,
+        Integer quantity
 ) {
 }

@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.dto.request;
 
+import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CouponCreateRequest {
+public class CouponPolicyCreateRequest {
 
     @NotBlank(message = "쿠폰 이름은 필수입니다.")
     @Size(max = 100)
@@ -52,5 +53,20 @@ public class CouponCreateRequest {
     @Enumerated(EnumType.STRING)
     private CouponPolicyStatus couponPolicyStatus;
 
-
+    // CouponPolicyCreateRequest 클래스 내부
+    public CouponPolicy toEntity() {
+        return CouponPolicy.builder()
+                .couponPolicyName(this.couponPolicyName)
+                .couponType(this.couponType)
+                .discountWay(this.discountWay)
+                .discountAmount(this.discountAmount)
+                .minOrderAmount(this.minOrderAmount)
+                .maxDiscountAmount(this.maxDiscountAmount)
+                .validDays(this.validDays)
+                .validStartDate(this.validStartDate)
+                .validEndDate(this.validEndDate)
+                .quantity(this.quantity)
+                .couponPolicyStatus(this.couponPolicyStatus)
+                .build();
+    }
 }

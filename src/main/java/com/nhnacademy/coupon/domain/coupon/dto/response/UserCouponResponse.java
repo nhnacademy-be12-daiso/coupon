@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class UserCouponResponse {
     private Long userCouponId;
     private Long userId;
-    private CouponResponse coupon;
+    private CouponPolicyResponse coupon;
     private CouponStatus status;
     private LocalDateTime issuedAt; // 발급 일자
     private LocalDateTime expiryAt; // 쿠폰 만료 일자
