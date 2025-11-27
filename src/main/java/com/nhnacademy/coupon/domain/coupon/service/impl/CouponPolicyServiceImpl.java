@@ -1,12 +1,13 @@
 package com.nhnacademy.coupon.domain.coupon.service.impl;
 
 import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
-import com.nhnacademy.coupon.domain.coupon.exception.CouponNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
@@ -25,6 +26,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -55,6 +57,40 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         }
         return responses;
     }
+    // 쿠폰 정책 단일 조회
+    @Override
+    public CouponPolicyResponse couponPolicyDetail(Long id) {
+        CouponPolicy policy = couponPolicyRepository.findById(id)
+                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+        CouponPolicyResponse response = convertToResponse(policy);
+        return response;
+    }
+
+    // 쿠폰 정책 수정
+    @Override
+    public CouponPolicyResponse updateCouponPolicy(Long id, CouponPolicyUpdateRequest request) {
+        CouponPolicy policy = couponPolicyRepository.findById(id)
+                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+        // 발급된 쿠폰 개수 확인
+        long issuedCount = userCouponRepository.countByCouponPolicyCouponPolicyId(id);
+
+        if(issuedCount > 0){
+            // 발급 후에는 상태만 변경 가능
+            if (!isSameExceptStatus(policy, request)) {
+                throw new IllegalStateException(
+                        "이미 " + issuedCount + "개의 쿠폰이 발급되어 할인 조건을 수정할 수 없습니다. " +
+                                "상태만 변경할 수 있습니다."
+                );
+            }
+            // 상태만 변경
+            policy.updateStatus(request.getPolicyStatus());
+        } else {
+            policy.update(request);
+        }
+
+        CouponPolicy saved = couponPolicyRepository.save(policy);
+        return convertToResponse(saved);
+    }
 
     // 사용자에게 쿠폰 발급
     @Override
@@ -62,7 +98,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public UserCouponResponse issueCoupon(Long userId, UserCouponIssueRequest request){
         // 쿠폰 정책 조회
         CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
-                .orElseThrow(() -> new CouponNotFoundException("쿠폰을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
         // 만료일 계산 (유효기간 방식에 따라 분기)
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryAt;
@@ -126,7 +162,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     @Transactional
     public CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount){
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
-                .orElseThrow(() -> new CouponNotFoundException("보유한 쿠폰을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CouponPolicyNotFoundException("보유한 쿠폰을 찾을 수 없습니다."));
 
         CouponPolicy couponPolicy = userCoupon.getCouponPolicy();
 
@@ -207,6 +243,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
 
 
+
     private CouponPolicyResponse convertToResponse(CouponPolicy policy) {
         return CouponPolicyResponse.builder()
                 .couponPolicyId(policy.getCouponPolicyId())
@@ -233,5 +270,16 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .expiryAt(userCoupon.getExpiryAt()) // expiryAt으로 통일
                 .usedAt(userCoupon.getUsedAt())
                 .build();
+    }
+
+    private boolean isSameExceptStatus(CouponPolicy policy, CouponPolicyUpdateRequest request) {
+        return policy.getCouponPolicyName().equals(request.getCouponPolicyName())
+                && policy.getCouponType().equals(request.getCouponType())
+                && policy.getDiscountWay().equals(request.getDiscountWay())
+                && policy.getDiscountAmount().equals(request.getDiscountAmount())
+                && Objects.equals(policy.getMinOrderAmount(), request.getMinOrderAmount())
+                && Objects.equals(policy.getMaxDiscountAmount(), request.getMaxDiscountAmount())
+                && Objects.equals(policy.getValidDays(), request.getValidDays())
+                && Objects.equals(policy.getQuantity(), request.getQuantity());
     }
 }

@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
 import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,5 +39,20 @@ public class CouponPolicyController {
     public ResponseEntity<List<CouponPolicyResponse>> getPolicies(){
         List<CouponPolicyResponse> couponPolicies = couponPolicyService.couponPolices();
         return ResponseEntity.ok(couponPolicies);
+    }
+
+    @Operation(summary = "쿠폰 정책 단일 조회", description = "쿠폰 정책을 모두 조회합니다")
+    @GetMapping("/policies/{id}")
+    public ResponseEntity<CouponPolicyResponse> getPolicyDetail(@PathVariable Long id){
+        CouponPolicyResponse couponPolicy = couponPolicyService.couponPolicyDetail(id);
+        return ResponseEntity.ok(couponPolicy);
+    }
+
+    @Operation(summary = "쿠폰 정책 수정", description = "이미 발급된 쿠폰일시 쿠폰 활성화,비활성화만 가능")
+    @PutMapping("/policies/{id}")
+    public ResponseEntity<CouponPolicyResponse> updatePolicy(
+            @PathVariable Long id, @Valid @RequestBody CouponPolicyUpdateRequest request){
+        CouponPolicyResponse updated = couponPolicyService.updateCouponPolicy(id,request);
+        return ResponseEntity.ok(updated);
     }
 }

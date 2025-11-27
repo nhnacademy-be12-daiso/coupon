@@ -1,6 +1,6 @@
 package com.nhnacademy.coupon.global.error;
 
-import com.nhnacademy.coupon.domain.coupon.exception.CouponNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -17,9 +17,9 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(CouponNotFoundException.class)
+    @ExceptionHandler(CouponPolicyNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCouponNotFound(
-            CouponNotFoundException ex,
+            CouponPolicyNotFoundException ex,
             HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),

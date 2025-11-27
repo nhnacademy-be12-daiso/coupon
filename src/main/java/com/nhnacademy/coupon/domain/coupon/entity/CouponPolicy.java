@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon.domain.coupon.entity;
 
 
+import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
@@ -58,6 +59,25 @@ public class CouponPolicy {
     @Column(name = "policy_status")
     private CouponPolicyStatus couponPolicyStatus;
 
+    // 전체 수정 (발급 전)
+    public void update(CouponPolicyUpdateRequest request) {
+        this.couponPolicyName = request.getCouponPolicyName();
+        this.couponType = request.getCouponType();
+        this.discountWay = request.getDiscountWay();
+        this.discountAmount = request.getDiscountAmount();
+        this.minOrderAmount = request.getMinOrderAmount();
+        this.maxDiscountAmount = request.getMaxDiscountAmount();
+        this.validDays = request.getValidDays();
+        this.validStartDate = request.getValidStartDate();
+        this.validEndDate = request.getValidEndDate();
+        this.quantity = request.getQuantity();
+        this.couponPolicyStatus = request.getPolicyStatus();  // 상태 포함
+    }
+
+    // 상태만 수정 (발급 후)
+    public void updateStatus(CouponPolicyStatus status) {
+        this.couponPolicyStatus = status;
+    }
 
 
 }
