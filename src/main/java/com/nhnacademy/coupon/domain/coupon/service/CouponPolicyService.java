@@ -42,7 +42,7 @@ public interface CouponPolicyService {
     BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount);
 
     // 사용자 쿠폰 목록 조회
-    Page<UserCouponResponse> getUserCoupons(Long userId, Pageable pageable);
+    List<UserCouponResponse> getUserCoupons(Long userId);
 
     //  사용 가능한 쿠폰 조회
     List<UserCouponResponse> getAvailableCoupons(Long userId);

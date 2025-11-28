@@ -58,10 +58,10 @@ public class UserCouponController {
     }
 
     @Operation(summary = "내 쿠폰 목록 조회")
-    @GetMapping("/users/{userId}")
-    public ResponseEntity<Page<UserCouponResponse>> getUserCoupons(@PathVariable Long userId, Pageable pageable) {
-        Page<UserCouponResponse> response = couponPolicyService.getUserCoupons(userId, pageable);
-        return ResponseEntity.ok(response);
+    @GetMapping("/users")
+    public ResponseEntity<List<UserCouponResponse>> getUserCoupons(@RequestHeader("X-User-Id") Long userCreatedId) {
+        List<UserCouponResponse> userCoupons = couponPolicyService.getUserCoupons(userCreatedId);
+        return ResponseEntity.ok(userCoupons);
     }
 
     @Operation(summary = "사용 가능한 쿠폰 조회")

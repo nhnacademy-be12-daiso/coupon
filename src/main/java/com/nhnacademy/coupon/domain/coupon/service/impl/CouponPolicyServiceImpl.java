@@ -213,10 +213,13 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         return discountAmount;
     }
 
+
     // 사용자 쿠폰 목록 조회
-    public Page<UserCouponResponse> getUserCoupons(Long userId, Pageable pageable){
-        return userCouponRepository.findByUserId(userId, pageable)
-                .map(this::convertToUserCouponResponse);
+    public List<UserCouponResponse> getUserCoupons(Long userId){
+        List<UserCouponResponse> userCouponResponses = userCouponRepository.findByUserId(userId).stream()
+                .map(this::convertToUserCouponResponse).toList();
+        return userCouponResponses;
+
     }
 
     // 사용 가능한 쿠폰 조회
@@ -264,7 +267,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         return UserCouponResponse.builder()
                 .userCouponId(userCoupon.getUserCouponId())
                 .userId(userCoupon.getUserId())
-                .coupon(convertToResponse(userCoupon.getCouponPolicy())) // coupon -> couponPolicy
+                .couponPolicy(convertToResponse(userCoupon.getCouponPolicy())) // coupon -> couponPolicy
                 .status(userCoupon.getStatus())
                 .issuedAt(userCoupon.getIssuedAt())
                 .expiryAt(userCoupon.getExpiryAt()) // expiryAt으로 통일
