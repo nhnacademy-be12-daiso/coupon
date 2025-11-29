@@ -58,6 +58,22 @@ public class CouponPolicy {
     @Enumerated(EnumType.STRING)
     @Column(name = "policy_status")
     private CouponPolicyStatus couponPolicyStatus;
+    // 수량 감소
+    public void decreaseQuantity() {
+        if (this.quantity == null) {
+            return; // 무제한이면 차감 안 함
+        }
+        if (this.quantity <= 0) {
+            throw new IllegalStateException("발급 가능한 쿠폰이 없습니다.");
+        }
+        this.quantity--;
+    }
+
+    public void increaseQuantity() {
+        if (this.quantity != null) {
+            this.quantity++;
+        }
+    }
 
     // 전체 수정 (발급 전)
     public void update(CouponPolicyUpdateRequest request) {

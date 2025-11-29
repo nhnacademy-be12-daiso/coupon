@@ -99,7 +99,14 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         // 쿠폰 정책 조회
         CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
-        // 만료일 계산 (유효기간 방식에 따라 분기)
+
+        if(couponPolicy.getQuantity() != null){
+            if(couponPolicy.getQuantity() <= 0){
+                throw new IllegalStateException("발급 가능한 쿠폰이 모두 소진되었습니다.");
+            }
+            couponPolicy.decreaseQuantity();
+        }
+        // 만료일 계산
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryAt;
 
@@ -232,16 +239,10 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .toList();
     }
 
-    // 만료된 쿠폰 처리 (배치)
     @Transactional
     public void expireCoupons(){
-        List<UserCoupon> expiredCoupons = userCouponRepository
-                .findAllByStatusAndExpiryAtBefore(CouponStatus.ISSUED, LocalDateTime.now());
-
-        for (UserCoupon coupon : expiredCoupons) {
-            coupon.expire();
-            log.info("쿠폰 만료 처리: userCouponId={}", coupon.getUserCouponId());
-        }
+        int count = userCouponRepository.bulkExpireCoupons(LocalDateTime.now());
+        log.info("만료 처리된 쿠폰 개수: {}", count);
     }
 
 
