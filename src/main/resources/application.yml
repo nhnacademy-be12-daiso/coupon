@@ -24,7 +24,13 @@ spring:
     port: ${SPRING_RABBITMQ_PORT}
     username: ${SPRING_RABBITMQ_USERNAME}
     password: ${SPRING_RABBITMQ_PASSWORD}
-
+rabbitmq:
+  exchange:
+    name: team3.coupon.exchange
+  routing:
+    key: team3.coupon.welcome
+  queue:
+    name: team3.coupon.welcome.queue  # <-- 메시지가 쌓일 실제 우편함 이름
 eureka:
   instance:
     prefer-ip-address: true
