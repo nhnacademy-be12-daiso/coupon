@@ -23,14 +23,14 @@ public class CouponMessageListener {
     @RabbitListener(queues = "${rabbitmq.queue.name}")
     public void handleWelcomeCouponIssue(CouponIssueMessage message){
         log.info("===========================");
-        log.info("[RabbitMQ Consumer] 메시지 수신: userId={}", message.userCreatedId());
+        log.info("[RabbitMQ Consumer] 메시지 수신: userCreatedId={}", message.userCreatedId());
 
         try{
             // 서비스 로직 호출 (웰컴 쿠폰 발급)
             couponPolicyService.issueWelcomeCoupon(message.userCreatedId());
-            log.info("[RabbitMQ Consumer] 웰컴 쿠폰 발급 완료! userId={}", message.userCreatedId());
+            log.info("[RabbitMQ Consumer] 웰컴 쿠폰 발급 완료! userCreatedId={}", message.userCreatedId());
         } catch (Exception e){
-            log.error("[RabbitMQ Consumer] 쿠폰 발급 실패: userId={}, error={}", message.userCreatedId(), e.getMessage());
+            log.error("[RabbitMQ Consumer] 쿠폰 발급 실패: userCreatedId={}, error={}", message.userCreatedId(), e.getMessage());
         }
         log.info("===========================");
     }

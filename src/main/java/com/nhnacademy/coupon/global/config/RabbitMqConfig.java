@@ -36,7 +36,10 @@ public class RabbitMqConfig {
     public TopicExchange exchange(){
         return new TopicExchange(exchangeName);
     }
-
+    // "이 'exchange'(우체국)에"
+    // "'routingKey'(수신인: team3.coupon.welcome)라고 적힌 편지가 오면"
+    // "저 'queue'(우편함: team3.coupon.welcome.queue)로 보내주세요!"
+    // 라는 규칙(Binding)을 생성해서 RabbitMQ에 등록함.
     // 바인딩 (큐와 익스체인지를 라우팅 키로 연결)
     @Bean
     public Binding binding(Queue queue, TopicExchange exchange){
@@ -47,6 +50,7 @@ public class RabbitMqConfig {
     @Bean
     public MessageConverter jsonMessageConverter(){
         return new Jackson2JsonMessageConverter();
+
     }
 
     // RabbitTemplate (메시지 보낼 때 필요하지만, 받는 쪽에서도 변환기 설정을 위해 필요)

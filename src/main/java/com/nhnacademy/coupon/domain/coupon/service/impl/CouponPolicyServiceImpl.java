@@ -16,8 +16,6 @@ import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,14 +73,8 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         long issuedCount = userCouponRepository.countByCouponPolicyCouponPolicyId(id);
 
         if(issuedCount > 0){
-            // 발급 후에는 상태만 변경 가능
-            if (!isSameExceptStatus(policy, request)) {
-                throw new IllegalStateException(
-                        "이미 " + issuedCount + "개의 쿠폰이 발급되어 할인 조건을 수정할 수 없습니다. " +
-                                "상태만 변경할 수 있습니다."
-                );
-            }
-            // 상태만 변경
+            // 발급 후에는 상태만 변경 (검증 제거)
+            log.info("이미 {}개의 쿠폰이 발급되어 상태만 변경합니다.", issuedCount);
             policy.updateStatus(request.getPolicyStatus());
         } else {
             policy.update(request);
