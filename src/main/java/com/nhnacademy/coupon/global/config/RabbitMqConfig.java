@@ -50,6 +50,7 @@ public class RabbitMqConfig {
     @Bean
     public MessageConverter jsonMessageConverter(){
         return new Jackson2JsonMessageConverter();
+
     }
 
     // RabbitTemplate (메시지 보낼 때 필요하지만, 받는 쪽에서도 변환기 설정을 위해 필요)

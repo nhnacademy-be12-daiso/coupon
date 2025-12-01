@@ -28,32 +28,12 @@ public class UserCouponController {
 
     private final CouponPolicyService couponPolicyService;
 
-    @GetMapping("test/auth")
-    public String testAuth(@RequestHeader(value = "X-User-Id", required = false) String userId) {
-
-        log.info("========================================");
-        log.info("[Coupon Server] 인증된 User ID: {}", userId);
-        log.info("========================================");
-
-        if (userId == null) {
-            return "실패: 인증 헤더(X-User-Id)가 없습니다!";
-        }
-        return "성공: 당신의 ID는 " + userId + "입니다.";
-    }
-
-    @Operation(summary = "Welcome 쿠폰 발급", description = "회원가입 완료 시 시스템이 자동으로 호출하는 API입니다.")
-    @PostMapping("/welcome/{userId}")
-    public ResponseEntity<Void> issueWelcomeCoupon(@PathVariable Long userId) {
-        couponPolicyService.issueWelcomeCoupon(userId);
-        return ResponseEntity.ok().build();
-    }
-
     @Operation(summary = "쿠폰 발급", description = "사용자에게 쿠폰을 발급합니다.")
     @PostMapping
     public ResponseEntity<UserCouponResponse> issueCoupon(
-            @CurrentUserId Long userId,  // 토큰에서 검증된 진짜 ID
+            @RequestHeader("X-User-Id") Long userCreatedId,  // 토큰에서 검증된 진짜 ID
             @Valid @RequestBody UserCouponIssueRequest request) {
-        UserCouponResponse response = couponPolicyService.issueCoupon(userId, request);
+        UserCouponResponse response = couponPolicyService.issueCoupon(userCreatedId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -80,4 +60,24 @@ public class UserCouponController {
         CouponApplyResponse response = couponPolicyService.applyCoupon(userCouponId, price);
         return ResponseEntity.ok(response);
     }
+//    @GetMapping("test/auth")
+//    public String testAuth(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+//
+//        log.info("========================================");
+//        log.info("[Coupon Server] 인증된 User ID: {}", userId);
+//        log.info("========================================");
+//
+//        if (userId == null) {
+//            return "실패: 인증 헤더(X-User-Id)가 없습니다!";
+//        }
+//        return "성공: 당신의 ID는 " + userId + "입니다.";
+//    }
+
+    //    CouponMessageListener를 통해서 호출되므로 사용안함
+//    @Operation(summary = "Welcome 쿠폰 발급", description = "회원가입 완료 시 시스템이 자동으로 호출하는 API입니다.")
+//    @PostMapping("/welcome/{userId}")
+//    public ResponseEntity<Void> issueWelcomeCoupon(@PathVariable Long userId) {
+//        couponPolicyService.issueWelcomeCoupon(userId);
+//        return ResponseEntity.ok().build();
+//    }
 }

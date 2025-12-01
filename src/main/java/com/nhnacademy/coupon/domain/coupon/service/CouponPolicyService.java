@@ -7,14 +7,7 @@ import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface CouponPolicyService {
