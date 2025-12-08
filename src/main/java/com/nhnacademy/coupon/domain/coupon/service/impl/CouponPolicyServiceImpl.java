@@ -3,24 +3,20 @@ package com.nhnacademy.coupon.domain.coupon.service.impl;
 import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
-import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
+import com.nhnacademy.coupon.domain.coupon.repository.BookCouponRepository;
+import com.nhnacademy.coupon.domain.coupon.repository.CategoryCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
-import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,21 +28,52 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     private final CouponPolicyRepository couponPolicyRepository;
     private final UserCouponRepository userCouponRepository;
+    private final CategoryCouponRepository categoryCouponRepository;
+    private final BookCouponRepository bookCouponRepository;
 
-    public CouponPolicyServiceImpl(CouponPolicyRepository couponPolicyRepository, UserCouponRepository userCouponRepository) {
+    public CouponPolicyServiceImpl(
+            CouponPolicyRepository couponPolicyRepository,
+            UserCouponRepository userCouponRepository,
+            CategoryCouponRepository categoryCouponRepository,
+            BookCouponRepository bookCouponRepository) {
         this.couponPolicyRepository = couponPolicyRepository;
         this.userCouponRepository = userCouponRepository;
+        this.categoryCouponRepository = categoryCouponRepository;
+        this.bookCouponRepository = bookCouponRepository;
     }
 
     // 쿠폰 정책 생성
     @Transactional
-    public CouponPolicyResponse createCoupon(CouponPolicyCreateRequest request){
-        // dto -> entity
+    public CouponPolicyResponse createCouponPolicy(CouponPolicyCreateRequest request){
+        // 1. 쿠폰 정책 저장
         CouponPolicy saved = couponPolicyRepository.save(request.toEntity());
+
+//        // 2. 타입별 매핑 테이블 저장
+//        if(request.getCouponType() == CouponType.CATEGORY){
+//            if(request.getTargetCategoryIds() != null && !request.getTargetCategoryIds().isEmpty()){
+//                for (Long categoryId : request.getTargetCategoryIds()) {
+//                    CategoryCoupon categoryCoupon = new CategoryCoupon(saved, categoryId); // (쿠폰 정책 Pk, 카테고리Pk)
+//                    categoryCouponRepository.save(categoryCoupon);
+//                }
+//                log.info("카테고리 쿠폰 매핑 완료: policyId={}, categories={}",
+//                        saved.getCouponPolicyId(), request.getTargetCategoryIds());
+//            }
+//        } else if (request.getCouponType() == CouponType.BOOKS) {
+//            // 특정 도서 쿠폰
+//            if (request.getTargetBookIds() != null && !request.getTargetBookIds().isEmpty()) {
+//                for (Long bookId : request.getTargetBookIds()) {
+//                    BookCoupon bookCoupon = new BookCoupon(saved, bookId);
+//                    bookCouponRepository.save(bookCoupon);
+//                }
+//                log.info("도서 쿠폰 매핑 완료: policyId={}, books={}",
+//                        saved.getCouponPolicyId(), request.getTargetBookIds());
+//            }
+//        }
         return convertToResponse(saved);
     }
     // 쿠폰 정책 전체 조회
     @Override
+    @Transactional(readOnly = true)
     public List<CouponPolicyResponse> couponPolices() {
         List<CouponPolicy> policies = couponPolicyRepository.findAll();
         ArrayList<CouponPolicyResponse> responses = new ArrayList<>();
@@ -57,6 +84,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     }
     // 쿠폰 정책 단일 조회
     @Override
+    @Transactional(readOnly = true)
     public CouponPolicyResponse couponPolicyDetail(Long id) {
         CouponPolicy policy = couponPolicyRepository.findById(id)
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
@@ -66,6 +94,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     // 쿠폰 정책 수정
     @Override
+    @Transactional
     public CouponPolicyResponse updateCouponPolicy(Long id, CouponPolicyUpdateRequest request) {
         CouponPolicy policy = couponPolicyRepository.findById(id)
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
@@ -155,90 +184,6 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         }
 
     }
-
-
-    // 쿠폰 사용 (주문 시)
-    @Transactional
-    public CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount){
-        UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
-                .orElseThrow(() -> new CouponPolicyNotFoundException("보유한 쿠폰을 찾을 수 없습니다."));
-
-        CouponPolicy couponPolicy = userCoupon.getCouponPolicy();
-
-        // 최소 주문 금액 체크
-        if(couponPolicy.getMinOrderAmount() != null &&
-            orderAmount.compareTo(BigDecimal.valueOf(couponPolicy.getMinOrderAmount())) < 0){ // 주문 금액이 쿠폰 최소 금액 보다 작으면 예외 처리
-            throw new InvalidCouponException(
-                    "최소 주문 금액(" + couponPolicy.getMinOrderAmount() + ")을 충족하지 않습니다.");        }
-
-        // 할인 금액 계산
-        BigDecimal discountAmount = calculateDiscount(couponPolicy, orderAmount);
-        BigDecimal finalAmount = orderAmount.subtract(discountAmount); // 할인 된 최종 금액
-
-        // 쿠폰 사용 처리
-        userCoupon.use();
-
-
-        return CouponApplyResponse.builder()
-                .userCouponId(userCouponId)
-                .couponName(couponPolicy.getCouponPolicyName()) // 정책 이름 사용
-                .originalAmount(orderAmount)
-                .discountAmount(discountAmount)
-                .finalAmount(finalAmount)
-                .build();
-    }
-
-    public BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount) {
-        BigDecimal discountAmount;
-
-        if(couponPolicy.getDiscountWay() == DiscountWay.FIXED){
-            // 고정 할인 금액
-             discountAmount = couponPolicy.getDiscountAmount();
-        } else {
-            // 퍼센트 할인
-            discountAmount = orderAmount
-                    .multiply(couponPolicy.getDiscountAmount())
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        }
-
-        // 최대 할인 금액 제한
-        if(couponPolicy.getMaxDiscountAmount() != null){
-            BigDecimal maxDiscount = BigDecimal.valueOf(couponPolicy.getMaxDiscountAmount());
-            if(discountAmount.compareTo(maxDiscount) > 0){ // 할인 금액이 최대 할인 금액보다 크면 최대 할인 금액으로 할인 금액 Fix!
-                discountAmount = maxDiscount;
-            }
-        }
-
-        return discountAmount;
-    }
-
-
-    // 사용자 쿠폰 목록 조회
-    public List<UserCouponResponse> getUserCoupons(Long userId){
-        List<UserCouponResponse> userCouponResponses = userCouponRepository.findByUserId(userId).stream()
-                .map(this::convertToUserCouponResponse).toList();
-        return userCouponResponses;
-
-    }
-
-    // 사용 가능한 쿠폰 조회
-    public List<UserCouponResponse> getAvailableCoupons(Long userId){
-        List<UserCoupon> coupons = userCouponRepository
-                .findByUserIdAndStatus(userId, CouponStatus.ISSUED);
-
-        return coupons.stream()
-                .map(this::convertToUserCouponResponse)
-                .toList();
-    }
-
-    @Transactional
-    public void expireCoupons(){
-        int count = userCouponRepository.bulkExpireCoupons(LocalDateTime.now());
-        log.info("만료 처리된 쿠폰 개수: {}", count);
-    }
-
-
-
 
     private CouponPolicyResponse convertToResponse(CouponPolicy policy) {
         return CouponPolicyResponse.builder()

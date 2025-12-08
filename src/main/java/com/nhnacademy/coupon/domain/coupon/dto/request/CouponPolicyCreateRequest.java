@@ -15,6 +15,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "쿠폰 생성 요청")
 @Getter
@@ -52,6 +53,12 @@ public class CouponPolicyCreateRequest {
 
     @Enumerated(EnumType.STRING)
     private CouponPolicyStatus couponPolicyStatus;
+
+    @Schema(description = "적용할 카테고리 ID 리스트 (CATEGORY 타입일 때 필수)")
+    private List<Long> targetCategoryIds;
+
+    @Schema(description = "적용할 도서 ID 리스트 (BOOKS 타입일 때 필수)")
+    private List<Long> targetBookIds;
 
     // CouponPolicyCreateRequest 클래스 내부
     public CouponPolicy toEntity() {

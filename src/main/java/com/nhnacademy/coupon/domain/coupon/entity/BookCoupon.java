@@ -2,14 +2,14 @@ package com.nhnacademy.coupon.domain.coupon.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "book_coupon")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class BookCoupon {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,4 +22,13 @@ public class BookCoupon {
     @ManyToOne
     @JoinColumn(name = "coupon_policy_id")
     private CouponPolicy couponPolicy;
+
+    @Column(name = "book_title")
+    private String bookTitle;
+
+    public BookCoupon(CouponPolicy couponPolicy, Long bookId, String bookTitle) {
+        this.couponPolicy = couponPolicy;
+        this.bookId = bookId;
+        this.bookTitle = bookTitle;
+    }
 }
