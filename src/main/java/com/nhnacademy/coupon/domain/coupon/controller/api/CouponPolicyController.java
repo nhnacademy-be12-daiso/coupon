@@ -2,7 +2,9 @@ package com.nhnacademy.coupon.domain.coupon.controller.api;
 
 import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,7 +32,7 @@ public class CouponPolicyController {
             @RequestHeader(value = "X-Gateway-Pass", required = false) String gatewayPass,
             @Valid @RequestBody CouponPolicyCreateRequest request) {
         System.out.println(gatewayPass);
-        CouponPolicyResponse response = couponPolicyService.createCoupon(request);
+        CouponPolicyResponse response = couponPolicyService.createCouponPolicy(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -54,5 +56,14 @@ public class CouponPolicyController {
             @PathVariable Long id, @Valid @RequestBody CouponPolicyUpdateRequest request){
         CouponPolicyResponse updated = couponPolicyService.updateCouponPolicy(id,request);
         return ResponseEntity.ok(updated);
+    }
+
+    @Operation(summary = "쿠폰 발급", description = "사용자에게 쿠폰을 발급합니다.")
+    @PostMapping
+    public ResponseEntity<UserCouponResponse> issueCoupon(
+            @RequestHeader("X-User-Id") Long userCreatedId,  // 토큰에서 검증된 진짜 ID
+            @Valid @RequestBody UserCouponIssueRequest request) {
+        UserCouponResponse response = couponPolicyService.issueCoupon(userCreatedId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
