@@ -10,7 +10,7 @@ import java.util.List;
 public interface UserCouponService {
 
     // 쿠폰 사용 (주문 시)
-    CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount);
+    CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount, List<Long> productTargetIds);
 
     // 사용자 쿠폰 목록 조회
     List<UserCouponResponse> getUserCoupons(Long userId);

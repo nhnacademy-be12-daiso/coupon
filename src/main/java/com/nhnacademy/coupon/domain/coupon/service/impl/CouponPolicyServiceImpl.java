@@ -7,6 +7,7 @@ import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.repository.BookCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CategoryCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
@@ -121,6 +122,11 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
 
+        CouponType type = couponPolicy.getCouponType();
+        if ((type == CouponType.CATEGORY || type == CouponType.BOOKS) && request.getTargetId() == null) {
+            throw new InvalidCouponException("이 쿠폰은 적용 대상(targetId)이 반드시 지정되어야 합니다.");
+        }
+
         if(couponPolicy.getQuantity() != null){
             if(couponPolicy.getQuantity() <= 0){
                 throw new IllegalStateException("발급 가능한 쿠폰이 모두 소진되었습니다.");
@@ -145,6 +151,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .status(CouponStatus.ISSUED)
                 .issuedAt(now) // 발급일시
                 .expiryAt(expiryAt) // 만료일시
+                .targetId(request.getTargetId())
                 .build();
 
         UserCoupon saved = userCouponRepository.save(userCoupon);
@@ -171,7 +178,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                     log.warn("이미 지급된 Welcome 쿠폰입니다: userId={}, couponId={}",userId, policy.getCouponPolicyId());
                     continue;
                 }
-                UserCouponIssueRequest request = new UserCouponIssueRequest(policy.getCouponPolicyId());
+                UserCouponIssueRequest request = new UserCouponIssueRequest(policy.getCouponPolicyId(),null);
                 issueCoupon(userId,request);
 
                 log.info("Welcome 쿠폰 발급 성공: userId={}, couponId={}", userId, policy.getCouponPolicyId());

@@ -34,10 +34,11 @@ public class CategoryCouponController {
         // 1. Book 서비스에서 이 책의 카테고리 조회
         BookCategoryResponse bookCategory = bookServiceClient.getBookCategory(bookId);
 
-        // 2. 이미 발급받은 쿠폰 정책 ID 목록 (N+1 방지)
-        Set<Long> issuedPolicyIds = userCouponRepository.findByUserId(userCreatedId)
+        // 2. [수정됨] 이미 발급받은 쿠폰 확인용 키 생성 (형식: "정책ID_타겟ID")
+        // 예: 정책 7번, 타겟 400(수학) -> "7_400"
+        Set<String> issuedCouponKeys = userCouponRepository.findByUserId(userCreatedId)
                 .stream()
-                .map(uc -> uc.getCouponPolicy().getCouponPolicyId())
+                .map(uc -> uc.getCouponPolicy().getCouponPolicyId() + "_" + uc.getTargetId())
                 .collect(Collectors.toSet());
 
         // 3. 1단계, 2단계 카테고리의 쿠폰 정책 조회
@@ -63,10 +64,11 @@ public class CategoryCouponController {
                     if (policy.getQuantity() != null && policy.getQuantity() <= 0) {
                         return false;
                     }
+                    String candidateKey = policy.getCouponPolicyId() + "_" + categoryCoupon.getBookCategoryId();
 
                     // 이미 발급받은 쿠폰 제외
-                    if (issuedPolicyIds.contains(policy.getCouponPolicyId())) {
-                        return false;
+                    if (issuedCouponKeys.contains(candidateKey)) {
+                        return false; // "7_800"을 이미 가지고 있다면 제외!
                     }
 
                     return true;
@@ -91,6 +93,7 @@ public class CategoryCouponController {
                         .couponPolicyId(policy.getCouponPolicyId())
                         .couponPolicyName(policy.getCouponPolicyName())
                         .discountWay(policy.getDiscountWay().name())
+                        .couponType(policy.getCouponType())
                         .discountAmount(policy.getDiscountAmount())
                         .minOrderAmount(policy.getMinOrderAmount())
                         .maxDiscountAmount(policy.getMaxDiscountAmount())

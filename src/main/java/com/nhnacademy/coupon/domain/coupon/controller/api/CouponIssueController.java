@@ -3,17 +3,19 @@ package com.nhnacademy.coupon.domain.coupon.controller.api;
 import com.nhnacademy.coupon.domain.coupon.dto.request.CategoryCouponIssueRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.impl.CouponIssueService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/coupons")
-@RequiredArgsConstructor
 public class CouponIssueController {
 
-    private final CouponIssueService couponIssueService;
+    private CouponIssueService couponIssueService;
+
+    public CouponIssueController(CouponIssueService couponIssueService) {
+        this.couponIssueService = couponIssueService;
+    }
 
     @PostMapping("/issue")
     public ResponseEntity<UserCouponResponse> issueCoupon(

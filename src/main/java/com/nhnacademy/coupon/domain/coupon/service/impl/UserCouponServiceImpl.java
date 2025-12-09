@@ -33,17 +33,26 @@ public class UserCouponServiceImpl implements UserCouponService {
 
     // 쿠폰 사용 (주문 시)
     @Transactional
-    public CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount){
+    public CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount, List<Long> productTargetIds){
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                 .orElseThrow(() -> new CouponPolicyNotFoundException("보유한 쿠폰을 찾을 수 없습니다."));
 
         CouponPolicy couponPolicy = userCoupon.getCouponPolicy();
+
+
 
         // 최소 주문 금액 체크
         if(couponPolicy.getMinOrderAmount() != null &&
                 orderAmount.compareTo(BigDecimal.valueOf(couponPolicy.getMinOrderAmount())) < 0){ // 주문 금액이 쿠폰 최소 금액 보다 작으면 예외 처리
             throw new InvalidCouponException(
                     "최소 주문 금액(" + couponPolicy.getMinOrderAmount() + ")을 충족하지 않습니다.");
+        }
+
+        Long couponTargetId = userCoupon.getTargetId();
+
+        // 타겟이 지정된 쿠폰(수학 전용 등)인데, 결제 대상(책/카테고리 리스트)에 그 ID가 없다면?
+        if (couponTargetId != null && !productTargetIds.contains(couponTargetId)) {
+            throw new InvalidCouponException("이 상품에는 적용할 수 없는 쿠폰입니다.");
         }
 
         // 할인 금액 계산

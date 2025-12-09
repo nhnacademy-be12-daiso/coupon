@@ -37,4 +37,11 @@ public interface UserCouponRepository extends JpaRepository<UserCoupon, Long> {
     @Modifying
     @Query("UPDATE UserCoupon uc SET uc.status = 'EXPIRED' WHERE uc.status = 'ISSUED' AND uc.expiryAt < :now")
     int bulkExpireCoupons(@Param("now") LocalDateTime now);
+
+    // "정책 ID + 타겟 ID" 조합으로 이미 발급된 쿠폰이 있는지 확인
+    boolean existsByUserIdAndCouponPolicy_CouponPolicyIdAndTargetId(
+            Long userId,
+            Long couponPolicyId,
+            Long targetId
+    );
 }

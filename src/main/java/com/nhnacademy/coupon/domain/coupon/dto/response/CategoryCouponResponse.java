@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.dto.response;
 
+import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ public record CategoryCouponResponse(
             Long couponPolicyId,
             String couponPolicyName,
             String discountWay,
+            CouponType couponType,
             BigDecimal discountAmount,
             Long minOrderAmount,
             Long maxDiscountAmount,

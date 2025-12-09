@@ -8,6 +8,7 @@ import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
+import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,28 +30,31 @@ public class CouponIssueService {
                 .findById(request.getCouponPolicyId())
                 .orElseThrow(() -> new IllegalArgumentException("쿠폰 정책을 찾을 수 없습니다."));
 
-        // 2. 중복 발급 체크
-        if (userCouponRepository.existsByUserIdAndCouponPolicy_CouponPolicyId(
-                userId, policy.getCouponPolicyId())) {
+        // 카테고리/도서 쿠폰인데 targetId가 없으면 예외 발생
+        CouponType type = policy.getCouponType();
+        if ((type == CouponType.CATEGORY || type == CouponType.BOOKS) && request.getTargetId() == null) {
+
+            throw new IllegalArgumentException("이 쿠폰은 적용 대상(targetId)이 반드시 지정되어야 합니다.");
+        }
+        // 3. [중복 체크] 정책 + 타겟 조합으로 확인
+        if (userCouponRepository.existsByUserIdAndCouponPolicy_CouponPolicyIdAndTargetId(
+                userId, policy.getCouponPolicyId(), request.getTargetId())) {
             throw new IllegalStateException("이미 발급받은 쿠폰입니다.");
         }
 
-        // 3. 수량 체크 및 차감
-        if (policy.getQuantity() != null) {
-            if (policy.getQuantity() <= 0) {
-                throw new IllegalStateException("발급 가능한 쿠폰이 없습니다.");
-            }
-            policy.decreaseQuantity();
-        }
+        // 4. 수량 체크 및 차감
+        policy.decreaseQuantity();
 
-        // 4. 만료일 계산
+
+        // 5. 만료일 계산
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryAt = calculateExpiryDate(policy, now);
 
-        // 5. UserCoupon 생성
+        // 6. UserCoupon 생성
         UserCoupon userCoupon = UserCoupon.builder()
-                .userId(userId)
                 .couponPolicy(policy)
+                .userId(userId)
+                .targetId(request.getTargetId())
                 .status(CouponStatus.ISSUED)
                 .issuedAt(now)
                 .expiryAt(expiryAt)

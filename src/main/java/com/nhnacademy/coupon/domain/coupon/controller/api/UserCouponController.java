@@ -42,9 +42,10 @@ public class UserCouponController {
     @GetMapping("/{userCouponId}/calculation")
     public ResponseEntity<CouponApplyResponse> calculateDiscount(
             @PathVariable Long userCouponId,
-            @RequestParam BigDecimal price) {
+            @RequestParam BigDecimal price,
+            @RequestParam List<Long> targetIds) {
 
-        CouponApplyResponse response = userCouponService.applyCoupon(userCouponId, price);
+        CouponApplyResponse response = userCouponService.applyCoupon(userCouponId, price,targetIds);
         return ResponseEntity.ok(response);
     }
 }
