@@ -7,6 +7,7 @@ import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.DuplicateCouponException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.repository.BookCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CategoryCouponRepository;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -45,31 +45,8 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     // 쿠폰 정책 생성
     @Transactional
-    public CouponPolicyResponse createCouponPolicy(CouponPolicyCreateRequest request){
-        // 1. 쿠폰 정책 저장
+    public CouponPolicyResponse createCouponPolicy(CouponPolicyCreateRequest request) {
         CouponPolicy saved = couponPolicyRepository.save(request.toEntity());
-
-//        // 2. 타입별 매핑 테이블 저장
-//        if(request.getCouponType() == CouponType.CATEGORY){
-//            if(request.getTargetCategoryIds() != null && !request.getTargetCategoryIds().isEmpty()){
-//                for (Long categoryId : request.getTargetCategoryIds()) {
-//                    CategoryCoupon categoryCoupon = new CategoryCoupon(saved, categoryId); // (쿠폰 정책 Pk, 카테고리Pk)
-//                    categoryCouponRepository.save(categoryCoupon);
-//                }
-//                log.info("카테고리 쿠폰 매핑 완료: policyId={}, categories={}",
-//                        saved.getCouponPolicyId(), request.getTargetCategoryIds());
-//            }
-//        } else if (request.getCouponType() == CouponType.BOOKS) {
-//            // 특정 도서 쿠폰
-//            if (request.getTargetBookIds() != null && !request.getTargetBookIds().isEmpty()) {
-//                for (Long bookId : request.getTargetBookIds()) {
-//                    BookCoupon bookCoupon = new BookCoupon(saved, bookId);
-//                    bookCouponRepository.save(bookCoupon);
-//                }
-//                log.info("도서 쿠폰 매핑 완료: policyId={}, books={}",
-//                        saved.getCouponPolicyId(), request.getTargetBookIds());
-//            }
-//        }
         return convertToResponse(saved);
     }
     // 쿠폰 정책 전체 조회
@@ -89,8 +66,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public CouponPolicyResponse couponPolicyDetail(Long id) {
         CouponPolicy policy = couponPolicyRepository.findById(id)
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
-        CouponPolicyResponse response = convertToResponse(policy);
-        return response;
+        return convertToResponse(policy);
     }
 
     // 쿠폰 정책 수정
@@ -114,49 +90,51 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         return convertToResponse(saved);
     }
 
-    // 사용자에게 쿠폰 발급
+    /**
+     * 통합된 쿠폰 발급 메서드
+     * - Welcome 쿠폰, 생일 쿠폰: targetId = null
+     * - 카테고리 쿠폰: targetId = 카테고리ID
+     * - 도서 쿠폰: targetId = 도서ID
+     *
+     * @param userId 사용자 ID
+     * @param request 쿠폰 발급 요청 (couponPolicyId, targetId)
+     * @return 발급된 사용자 쿠폰 정보
+     */
     @Override
     @Transactional
     public UserCouponResponse issueCoupon(Long userId, UserCouponIssueRequest request){
-        // 쿠폰 정책 조회
-        CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
+        // 1. 쿠폰 정책 조회
+        CouponPolicy policy = couponPolicyRepository.findById(request.getCouponPolicyId())
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
 
-        CouponType type = couponPolicy.getCouponType();
-        if ((type == CouponType.CATEGORY || type == CouponType.BOOKS) && request.getTargetId() == null) {
-            throw new InvalidCouponException("이 쿠폰은 적용 대상(targetId)이 반드시 지정되어야 합니다.");
-        }
+        // 2. targetId 필수 여부 검증
+        validateTargetId(policy.getCouponType(), request.getTargetId());
 
-        if(couponPolicy.getQuantity() != null){
-            if(couponPolicy.getQuantity() <= 0){
-                throw new IllegalStateException("발급 가능한 쿠폰이 모두 소진되었습니다.");
-            }
-            couponPolicy.decreaseQuantity();
-        }
-        // 만료일 계산
+        // 3. 중복 발급 체크 (타입별로 다르게 처리)
+        checkDuplicateIssuance(userId, policy, request.getTargetId());
+
+        // 4. 수량 차감
+        policy.decreaseQuantity();
+
+        // 5. 만료일 계산
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiryAt;
+        LocalDateTime expiryAt = calculateExpiryDate(policy, now);
 
-        if(couponPolicy.getValidDays() != null){
-            expiryAt = now.plusDays(couponPolicy.getValidDays());
-        } else if(couponPolicy.getValidEndDate() != null){ // 고정 유효기간 일떄
-            expiryAt = couponPolicy.getValidEndDate();
-        } else { // 기본값 처리 (1년 추가)
-            expiryAt = now.plusYears(1);
-        }
-        // 사용자 쿠폰 생성(여기서 매겨변수 userId를 사용)
+        // 6. UserCoupon 생성 및 저장
         UserCoupon userCoupon = UserCoupon.builder()
                 .userId(userId)
-                .couponPolicy(couponPolicy)
-                .status(CouponStatus.ISSUED)
-                .issuedAt(now) // 발급일시
-                .expiryAt(expiryAt) // 만료일시
+                .couponPolicy(policy)
                 .targetId(request.getTargetId())
+                .status(CouponStatus.ISSUED)
+                .issuedAt(now)
+                .expiryAt(expiryAt)
                 .build();
 
         UserCoupon saved = userCouponRepository.save(userCoupon);
-        return convertToUserCouponResponse(saved);
+        log.info("쿠폰 발급 완료: userId={}, policyId={}, type={}, targetId={}",
+                userId, policy.getCouponPolicyId(), policy.getCouponType(), request.getTargetId());
 
+        return convertToUserCouponResponse(saved);
     }
     // Welcome 쿠폰 발급
     @Override
@@ -192,6 +170,91 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     }
 
+    // ========== Private Helper Methods ==========
+
+    /**
+     * targetId 필수 여부 검증
+     * - CATEGORY, BOOKS 타입: targetId 필수
+     * - WELCOME, BIRTHDAY 등: targetId 불필요
+     */
+    private void validateTargetId(CouponType couponType, Long targetId) {
+        if ((couponType == CouponType.CATEGORY || couponType == CouponType.BOOKS)
+                && targetId == null) {
+            throw new InvalidCouponException(
+                    "카테고리/도서 쿠폰은 적용 대상(targetId)이 반드시 필요합니다.");
+        }
+    }
+
+    /**
+     * 중복 발급 체크
+     *
+     * 쿠폰 타입별 중복 체크 로직:
+     * 1. CATEGORY/BOOKS 쿠폰: 정책ID + targetId 조합으로 체크
+     *    - 같은 카테고리/도서에 대해 같은 정책의 쿠폰은 1번만 발급
+     *    - 예: "소설 카테고리 10% 할인" 쿠폰을 이미 받았으면 재발급 불가
+     *
+     * 2. WELCOME/BIRTHDAY 등 일반 쿠폰: 정책ID만으로 체크
+     *    - targetId가 없으므로 정책 단위로만 체크
+     *    - 예: "Welcome 쿠폰"은 회원당 1번만 발급
+     *
+     * @param userId 사용자 ID
+     * @param policy 쿠폰 정책
+     * @param targetId 적용 대상 ID (null 가능)
+     */
+    private void checkDuplicateIssuance(Long userId, CouponPolicy policy, Long targetId) {
+        boolean isDuplicate;
+
+        if (policy.getCouponType() == CouponType.CATEGORY ||
+                policy.getCouponType() == CouponType.BOOKS) {
+            // 카테고리/도서 쿠폰: 정책 + targetId 조합으로 체크
+            isDuplicate = userCouponRepository
+                    .existsByUserIdAndCouponPolicy_CouponPolicyIdAndTargetId(
+                            userId, policy.getCouponPolicyId(), targetId);
+
+            if (isDuplicate) {
+                throw new DuplicateCouponException(
+                        String.format("이미 발급받은 쿠폰입니다. (정책ID: %d, 대상ID: %d)",
+                                policy.getCouponPolicyId(), targetId));
+            }
+        } else {
+            // Welcome, Birthday 등 일반 쿠폰: 정책만으로 체크
+            isDuplicate = userCouponRepository
+                    .existsByUserIdAndCouponPolicy_CouponPolicyId(
+                            userId, policy.getCouponPolicyId());
+
+            if (isDuplicate) {
+                throw new DuplicateCouponException(
+                        String.format("이미 발급받은 쿠폰입니다. (정책ID: %d)",
+                                policy.getCouponPolicyId()));
+            }
+        }
+    }
+
+    /**
+     * 쿠폰 만료일 계산
+     * 우선순위: validDays > validEndDate > 기본값(1년)
+     *
+     * @param policy 쿠폰 정책
+     * @param issueTime 발급 시각
+     * @return 만료 일시
+     */
+    private LocalDateTime calculateExpiryDate(CouponPolicy policy, LocalDateTime issueTime) {
+        // 상대적 유효기간 (예: 발급일로부터 30일)
+        if (policy.getValidDays() != null) {
+            return issueTime.plusDays(policy.getValidDays());
+        }
+
+        // 절대적 유효기간 (예: 2024-12-31까지)
+        if (policy.getValidEndDate() != null) {
+            return policy.getValidEndDate();
+        }
+
+        // 기본값: 1년
+        return issueTime.plusYears(1);
+    }
+
+    // ========== Conversion Methods ==========
+
     private CouponPolicyResponse convertToResponse(CouponPolicy policy) {
         return CouponPolicyResponse.builder()
                 .couponPolicyId(policy.getCouponPolicyId())
@@ -218,16 +281,5 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .expiryAt(userCoupon.getExpiryAt()) // expiryAt으로 통일
                 .usedAt(userCoupon.getUsedAt())
                 .build();
-    }
-
-    private boolean isSameExceptStatus(CouponPolicy policy, CouponPolicyUpdateRequest request) {
-        return policy.getCouponPolicyName().equals(request.getCouponPolicyName())
-                && policy.getCouponType().equals(request.getCouponType())
-                && policy.getDiscountWay().equals(request.getDiscountWay())
-                && policy.getDiscountAmount().equals(request.getDiscountAmount())
-                && Objects.equals(policy.getMinOrderAmount(), request.getMinOrderAmount())
-                && Objects.equals(policy.getMaxDiscountAmount(), request.getMaxDiscountAmount())
-                && Objects.equals(policy.getValidDays(), request.getValidDays())
-                && Objects.equals(policy.getQuantity(), request.getQuantity());
     }
 }
