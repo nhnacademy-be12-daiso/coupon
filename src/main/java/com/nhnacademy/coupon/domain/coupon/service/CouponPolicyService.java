@@ -1,10 +1,10 @@
 package com.nhnacademy.coupon.domain.coupon.service;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import java.util.List;
 
 public interface CouponPolicyService {

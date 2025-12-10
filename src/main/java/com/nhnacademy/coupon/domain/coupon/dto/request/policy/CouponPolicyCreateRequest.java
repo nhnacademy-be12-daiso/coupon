@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon.domain.coupon.dto.request;
+package com.nhnacademy.coupon.domain.coupon.dto.request.policy;
 
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;

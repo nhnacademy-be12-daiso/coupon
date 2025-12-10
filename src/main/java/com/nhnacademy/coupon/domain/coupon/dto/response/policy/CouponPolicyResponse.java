@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon.domain.coupon.dto.response;
+package com.nhnacademy.coupon.domain.coupon.dto.response.policy;
 
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;

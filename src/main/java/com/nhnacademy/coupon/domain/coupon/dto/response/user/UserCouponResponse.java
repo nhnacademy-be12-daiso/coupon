@@ -1,5 +1,6 @@
-package com.nhnacademy.coupon.domain.coupon.dto.response;
+package com.nhnacademy.coupon.domain.coupon.dto.response.user;
 
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -22,4 +23,6 @@ public class UserCouponResponse {
     private LocalDateTime issuedAt; // 발급 일자
     private LocalDateTime expiryAt; // 쿠폰 만료 일자
     private LocalDateTime usedAt; // 쿠폰 사용일
+
+    private Long targetId; // 카테고리 or 특정 도서 판별하는 컬럼
 }

@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
-import com.nhnacademy.coupon.domain.coupon.dto.response.CategoryCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CategoryCoupon;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.repository.CategoryCouponRepository;

@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

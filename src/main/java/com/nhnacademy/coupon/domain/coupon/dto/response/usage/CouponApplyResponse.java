@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon.domain.coupon.dto.response;
+package com.nhnacademy.coupon.domain.coupon.dto.response.usage;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;

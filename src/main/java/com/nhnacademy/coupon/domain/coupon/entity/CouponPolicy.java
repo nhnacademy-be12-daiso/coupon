@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon.domain.coupon.entity;
 
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;

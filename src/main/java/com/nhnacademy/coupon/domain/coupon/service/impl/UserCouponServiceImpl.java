@@ -1,8 +1,9 @@
 package com.nhnacademy.coupon.domain.coupon.service.impl;
 
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
@@ -10,7 +11,9 @@ import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.service.UserCouponService;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
+import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
+import com.nhnacademy.coupon.global.client.BookServiceClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,9 +28,11 @@ import java.util.List;
 public class UserCouponServiceImpl implements UserCouponService {
 
     private final UserCouponRepository userCouponRepository;
+    private final BookServiceClient bookServiceClient;
 
-    public UserCouponServiceImpl(UserCouponRepository userCouponRepository) {
+    public UserCouponServiceImpl(UserCouponRepository userCouponRepository, BookServiceClient bookServiceClient) {
         this.userCouponRepository = userCouponRepository;
+        this.bookServiceClient = bookServiceClient;
     }
 
 
@@ -83,13 +88,53 @@ public class UserCouponServiceImpl implements UserCouponService {
 
     // 사용 가능한 쿠폰 조회
     @Transactional(readOnly = true)
-    public List<UserCouponResponse> getAvailableCoupons(Long userId){
-        List<UserCoupon> coupons = userCouponRepository
+    public List<UserCouponResponse> getAvailableCoupons(Long userId, Long bookId){
+        // 유저의 ISSUED(보유 중) 상태인 모든 쿠폰 조회
+        List<UserCoupon> myCoupons = userCouponRepository
                 .findByUserIdAndStatus(userId, CouponStatus.ISSUED);
 
-        return coupons.stream()
+        // bookId가 없으면(마이페이지 조회) 전체 반환
+        if(bookId == null){
+            return myCoupons.stream()
+                    .map(this::convertToUserCouponResponse)
+                    .toList();
+        }
+        // bookId가 있으면 책 정보(카테고리 포함) 조회
+        BookCategoryResponse bookInfo = bookServiceClient.getBookCategory(bookId);
+
+        // 필터링
+        return myCoupons.stream()
+                .filter(coupon -> isApplicableForBook(coupon, bookId, bookInfo))
                 .map(this::convertToUserCouponResponse)
                 .toList();
+    }
+
+    private boolean isApplicableForBook(UserCoupon coupon, Long bookId, BookCategoryResponse bookInfo) {
+        CouponType type = coupon.getCouponPolicy().getCouponType();
+        Long targetId = coupon.getTargetId();
+
+        // 범용 쿠폰
+        if(type == CouponType.WELCOME || type == CouponType.BIRTHDAY || type == CouponType.GENERAL){
+            return true;
+        }
+
+        // 도서 전용 쿠폰, 아직 특정 도서 쿠폰전임
+        if(type == CouponType.BOOKS){
+            return targetId != null && targetId.equals(bookId);
+        }
+
+        // 카테고리 쿠폰
+        if(type == CouponType.CATEGORY){
+            if(targetId == null) {
+                return false;
+            }
+
+            return targetId.equals(bookInfo.getPrimaryCategoryId()) ||
+                    targetId.equals(bookInfo.getSecondaryCategoryId());
+        }
+
+        return false;
+
     }
 
     // 만료된 쿠폰 개수 반환

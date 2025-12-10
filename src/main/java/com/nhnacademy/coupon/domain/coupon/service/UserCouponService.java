@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon.domain.coupon.service;
 
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponApplyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 
 import java.math.BigDecimal;
@@ -16,7 +16,7 @@ public interface UserCouponService {
     List<UserCouponResponse> getUserCoupons(Long userId);
 
     // 사용 가능한 쿠폰 조회
-    List<UserCouponResponse> getAvailableCoupons(Long userId);
+    List<UserCouponResponse> getAvailableCoupons(Long userId, Long bookId);
 
     // 만료 처리된 쿠폰 개수 조회
     void expireCoupons();

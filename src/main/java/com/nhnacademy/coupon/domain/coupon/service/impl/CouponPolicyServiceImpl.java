@@ -1,10 +1,10 @@
 package com.nhnacademy.coupon.domain.coupon.service.impl;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.DuplicateCouponException;
@@ -280,6 +280,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .issuedAt(userCoupon.getIssuedAt())
                 .expiryAt(userCoupon.getExpiryAt()) // expiryAt으로 통일
                 .usedAt(userCoupon.getUsedAt())
+                .targetId(userCoupon.getTargetId())
                 .build();
     }
 }

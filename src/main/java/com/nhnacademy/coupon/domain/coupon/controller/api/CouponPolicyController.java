@@ -1,10 +1,10 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyCreateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.CouponPolicyUpdateRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.UserCouponIssueRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.CouponPolicyResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.UserCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

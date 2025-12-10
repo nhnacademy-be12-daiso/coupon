@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon.domain.coupon.dto.request;
+package com.nhnacademy.coupon.domain.coupon.dto.request.issue;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
