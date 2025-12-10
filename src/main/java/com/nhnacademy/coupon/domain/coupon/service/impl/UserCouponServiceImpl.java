@@ -12,6 +12,7 @@ import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
+import com.nhnacademy.coupon.domain.coupon.repository.CategoryCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.service.UserCouponService;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
@@ -25,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,10 +37,13 @@ public class UserCouponServiceImpl implements UserCouponService {
 
     private final UserCouponRepository userCouponRepository;
     private final BookServiceClient bookServiceClient;
+    private final CategoryCouponRepository categoryCouponRepository;
 
-    public UserCouponServiceImpl(UserCouponRepository userCouponRepository, BookServiceClient bookServiceClient) {
+
+    public UserCouponServiceImpl(UserCouponRepository userCouponRepository, BookServiceClient bookServiceClient, CategoryCouponRepository categoryCouponRepository) {
         this.userCouponRepository = userCouponRepository;
         this.bookServiceClient = bookServiceClient;
+        this.categoryCouponRepository = categoryCouponRepository;
     }
 
 
@@ -81,14 +88,14 @@ public class UserCouponServiceImpl implements UserCouponService {
                 .build();
     }
 
-    // 사용자 쿠폰 목록 조회
-    @Transactional(readOnly = true)
-    public List<UserCouponResponse> getUserCoupons(Long userId){
-        List<UserCouponResponse> userCouponResponses = userCouponRepository.findByUserId(userId).stream()
-                .map(this::convertToUserCouponResponse).toList();
-        return userCouponResponses;
-
-    }
+//    // 사용자 쿠폰 목록 조회
+//    @Transactional(readOnly = true)
+//    public List<UserCouponResponse> getUserCoupons(Long userId){
+//        List<UserCouponResponse> userCouponResponses = userCouponRepository.findByUserId(userId).stream()
+//                .map(this::convertToUserCouponResponse).toList();
+//        return userCouponResponses;
+//
+//    }
 
     // 사용 가능한 쿠폰 조회
     @Transactional(readOnly = true)
@@ -266,6 +273,7 @@ public class UserCouponServiceImpl implements UserCouponService {
     }
 
     @Override
+    @Transactional
     public void cancelCouponUsage(Long userId, CouponCancelRequest request) {
         List<Long> couponIds = request.getUserCouponIds();
 
@@ -291,6 +299,44 @@ public class UserCouponServiceImpl implements UserCouponService {
                 throw e;
             }
         }
+    }
+
+    /**
+     * 사용자 쿠폰 목록 조회 (카테고리/도서명 포함)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserCouponResponse> getUserCoupons(Long userId) {
+
+        List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
+
+        // 1. 카테고리 쿠폰의 targetId 수집
+        List<Long> categoryTargetIds = userCoupons.stream()
+                .filter(uc -> uc.getTargetId() != null)
+                .filter(uc -> uc.getCouponPolicy().getCouponType() == CouponType.CATEGORY)
+                .map(UserCoupon::getTargetId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 2. 카테고리명 일괄 조회 (최적화)
+        Map<Long, String> categoryNameMap = new HashMap<>();
+        if (!categoryTargetIds.isEmpty()) {
+            List<Object[]> results = categoryCouponRepository
+                    .findCategoryNamesByIds(categoryTargetIds);
+
+            for (Object[] row : results) {
+                Long categoryId = (Long) row[0];
+                String categoryName = (String) row[1];
+                categoryNameMap.put(categoryId, categoryName);
+            }
+        }
+
+        log.info("카테고리명 조회 완료: {}", categoryNameMap);
+
+        // 3. Response 변환
+        return userCoupons.stream()
+                .map(uc -> convertToResponseWithItemName(uc, categoryNameMap))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -352,6 +398,37 @@ public class UserCouponServiceImpl implements UserCouponService {
                 .validEndDate(policy.getValidEndDate())
                 .policyStatus(policy.getCouponPolicyStatus())
                 .quantity(policy.getQuantity())
+                .build();
+    }
+
+    private UserCouponResponse convertToResponseWithItemName(
+            UserCoupon userCoupon,
+            Map<Long, String> categoryNameMap) {
+
+        Long targetId = userCoupon.getTargetId();
+        String itemName = null;
+
+        if (targetId != null) {
+            CouponType couponType = userCoupon.getCouponPolicy().getCouponType();
+
+            if (couponType == CouponType.CATEGORY) {
+                itemName = categoryNameMap.getOrDefault(targetId, null);
+            } else if (couponType == CouponType.BOOKS) {
+                // TODO: BookCoupon에서 도서명 조회
+                itemName = null;  // 일단 null
+            }
+        }
+
+        return UserCouponResponse.builder()
+                .userCouponId(userCoupon.getUserCouponId())
+                .userId(userCoupon.getUserId())
+                .couponPolicy(convertToResponse(userCoupon.getCouponPolicy()))
+                .status(userCoupon.getStatus())
+                .issuedAt(userCoupon.getIssuedAt())
+                .expiryAt(userCoupon.getExpiryAt())
+                .usedAt(userCoupon.getUsedAt())
+                .targetId(targetId)
+                .itemName(itemName)
                 .build();
     }
 

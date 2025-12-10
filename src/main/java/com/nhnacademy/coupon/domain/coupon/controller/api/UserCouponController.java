@@ -57,7 +57,7 @@ public class UserCouponController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "쿠폰 일관 사용 처리", description = "주문 완료 시 여러개의 쿠폰을 사용 처리합니다.")
+    @Operation(summary = "쿠폰 일괄 사용 처리", description = "주문 완료 시 여러개의 쿠폰을 사용 처리합니다.")
     @PostMapping("/use-batch")
     public ResponseEntity<Void> useCouponsBatch(
             @RequestHeader("X-User-Id") Long userId,
