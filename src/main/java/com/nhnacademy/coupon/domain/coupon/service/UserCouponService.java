@@ -1,8 +1,11 @@
 package com.nhnacademy.coupon.domain.coupon.service;
 
+import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
+import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,4 +26,6 @@ public interface UserCouponService {
 
     // 쿠폰 할인 계산
     BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount);
+
+    SingleCouponApplyResponse calculateSingleCoupon(@Valid SingleCouponApplyRequest request);
 }

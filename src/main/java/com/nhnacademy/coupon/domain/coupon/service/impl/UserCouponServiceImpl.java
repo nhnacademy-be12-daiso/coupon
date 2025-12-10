@@ -1,8 +1,10 @@
 package com.nhnacademy.coupon.domain.coupon.service.impl;
 
+import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
@@ -169,6 +171,103 @@ public class UserCouponServiceImpl implements UserCouponService {
         return discountAmount;
     }
 
+    /**
+     * 단일 도서에 단일 쿠폰 적용 계산(실시간)
+     * 실제 사용하지 않고, 팔인 금액만 계산
+     */
+    @Override
+    public SingleCouponApplyResponse calculateSingleCoupon(SingleCouponApplyRequest request) {
+        try{
+            // 1. 쿠폰 조회
+            UserCoupon userCoupon = userCouponRepository
+                    .findById(request.getUserCouponId())
+                    .orElseThrow(() -> new IllegalArgumentException("쿠폰을 찾을 수 없습니다."));
+
+            CouponPolicy policy = userCoupon.getCouponPolicy();
+
+            // 2. 가본 검증
+            validateCouponOwnership(userCoupon, request.getUserId());
+            validateCouponStatus(userCoupon);
+
+            // 3. 도서 총 금액 계산
+            BigDecimal itemTotal = request.getBookPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
+
+            // 4. 최소 주문 금액 검증
+            validateMinOrderAmount(policy,itemTotal);
+
+            // 5. 카테고리/도서 쿠폰 검증
+            BookCategoryResponse bookInfo = bookServiceClient.getBookCategory(request.getBookId());
+            
+            if(!isApplicableForBook(userCoupon, request.getBookId(), bookInfo)){
+                throw new IllegalArgumentException("이 도서(또는 카테고리)에는 적용할 수 없는 쿠폰입니다.");
+            }
+            // 6. 할인 금액 계산
+            BigDecimal discountAmount = calculateDiscount(policy, itemTotal); // 최종 할인 금액
+            BigDecimal finalAmount = itemTotal.subtract(discountAmount); // 할인 적용 후 최종 금액
+
+            log.info("쿠폰 계산 성공: bookId={}, couponId={}, discount={}",
+                    request.getBookId(), request.getUserCouponId(), discountAmount);
+
+            return SingleCouponApplyResponse.builder()
+                    .bookId(request.getBookId())
+                    .userCouponId(request.getUserCouponId())
+                    .couponName(policy.getCouponPolicyName())
+                    .originalAmount(itemTotal)
+                    .discountAmount(discountAmount)
+                    .finalAmount(finalAmount)
+                    .applicable(true)
+                    .message("적용 가능")
+                    .build();
+        } catch (Exception e) {
+            log.warn("쿠폰 계산 실패: bookId={}, couponId={}, error={}",
+                    request.getBookId(), request.getUserCouponId(), e.getMessage());
+
+            BigDecimal itemTotal = request.getBookPrice()
+                    .multiply(BigDecimal.valueOf(request.getQuantity()));
+
+            return SingleCouponApplyResponse.builder()
+                    .bookId(request.getBookId())
+                    .userCouponId(request.getUserCouponId())
+                    .couponName(null)
+                    .originalAmount(itemTotal)
+                    .discountAmount(BigDecimal.ZERO)
+                    .finalAmount(itemTotal)
+                    .applicable(false)
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * 쿠폰 소유자 검증
+     */
+    private void validateCouponOwnership(UserCoupon userCoupon, Long userId) {
+        if (!userCoupon.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 쿠폰이 아닙니다.");
+        }
+    }
+
+    /**
+     * 쿠폰 상태 검증
+     */
+    private void validateCouponStatus(UserCoupon userCoupon) {
+        if (!userCoupon.isAvailable()) {
+            throw new IllegalArgumentException(
+                    "사용할 수 없는 쿠폰입니다. (상태: " + userCoupon.getStatus() + ")");
+        }
+    }
+
+    /**
+     * 최소 주문 금액 검증
+     */
+    private void validateMinOrderAmount(CouponPolicy policy, BigDecimal itemTotal) {
+        if (policy.getMinOrderAmount() != null &&
+                itemTotal.compareTo(BigDecimal.valueOf(policy.getMinOrderAmount())) < 0) {
+            throw new IllegalArgumentException(
+                    "최소 주문 금액 미달입니다. (필요: " +
+                            policy.getMinOrderAmount() + "원)");
+        }
+    }
 
 
     private UserCouponResponse convertToUserCouponResponse(UserCoupon userCoupon) {

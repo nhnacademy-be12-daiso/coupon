@@ -1,12 +1,15 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponUseRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponUseResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.UserCouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,10 +45,16 @@ public class UserCouponController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "쿠폰 사용 처리")
-    @PostMapping("/{userCouponId}/use")
-    public CouponUseResponse useCoupon(
-            @PathVariable Long userCouponId, @RequestBody CouponUseRequest request){
+    @Operation(summary = "단일 도서에 쿠폰 적용 계산",description = "특정 도서에 쿠폰을 적용했을 때 할인 금액을 실시간으로 계산합니다. 실제 사용하지는 않습니다.")
+    @PostMapping("/calculate")
+    public ResponseEntity<SingleCouponApplyResponse> calculateSingleCoupon(
+            @Valid @RequestBody SingleCouponApplyRequest request){
+
+        log.info("단일 쿠폰 계산: bookId={}, couponId={}",request.getBookId(), request.getUserCouponId());
+
+        userCouponService.calculateSingleCoupon(request);
+
+        //작성하셈
 
         return null;
     }
