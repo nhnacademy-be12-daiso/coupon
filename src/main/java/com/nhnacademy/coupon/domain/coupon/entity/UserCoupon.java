@@ -27,9 +27,9 @@ public class UserCoupon {
     @Column(name = "user_created_id",nullable = false)
     private Long userId;
 
-    // 쿠폰 적용 대상 식별자(카테고리 ID 또는 도서 ID)
-    @Column(name = "target_id")
-    private Long targetId;
+    // 쿠폰 적용 대상 식별자(카테고리 ID 또는 도서 ID), 코드 리팩토링 하면서 지울거임.
+//    @Column(name = "target_id")
+//    private Long targetId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

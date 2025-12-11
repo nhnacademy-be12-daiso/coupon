@@ -10,6 +10,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "coupon_policies")
@@ -54,6 +56,9 @@ public class CouponPolicy {
 
     @Column(name = "quantity")
     private Integer quantity;
+
+    @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CouponCategory> couponCategories = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "policy_status")

@@ -3,51 +3,57 @@ package com.nhnacademy.coupon.domain.coupon.service.impl;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.AvailableCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.DuplicateCouponException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
-import com.nhnacademy.coupon.domain.coupon.repository.BookCouponRepository;
-import com.nhnacademy.coupon.domain.coupon.repository.CategoryCouponRepository;
-import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
-import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
+import com.nhnacademy.coupon.domain.coupon.repository.*;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
+import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     private final CouponPolicyRepository couponPolicyRepository;
     private final UserCouponRepository userCouponRepository;
-    private final CategoryCouponRepository categoryCouponRepository;
-    private final BookCouponRepository bookCouponRepository;
+    private final CouponCategoryRepository couponCategoryRepository;
 
-    public CouponPolicyServiceImpl(
-            CouponPolicyRepository couponPolicyRepository,
-            UserCouponRepository userCouponRepository,
-            CategoryCouponRepository categoryCouponRepository,
-            BookCouponRepository bookCouponRepository) {
-        this.couponPolicyRepository = couponPolicyRepository;
-        this.userCouponRepository = userCouponRepository;
-        this.categoryCouponRepository = categoryCouponRepository;
-        this.bookCouponRepository = bookCouponRepository;
-    }
 
     // 쿠폰 정책 생성
     @Transactional
     public CouponPolicyResponse createCouponPolicy(CouponPolicyCreateRequest request) {
-        CouponPolicy saved = couponPolicyRepository.save(request.toEntity());
-        return convertToResponse(saved);
+        // 1. 정책 저장
+        CouponPolicy policy = couponPolicyRepository.save(request.toEntity());
+
+        // 2. CATEGORY 타입이면 categoryIds를 coupon_categories에 저장
+        if (policy.getCouponType() == CouponType.CATEGORY &&
+                request.getCategoryIds() != null &&
+                !request.getCategoryIds().isEmpty()) {
+
+            List<CouponCategory> mappings = request.getCategoryIds().stream()
+                    .distinct()  // 같은 카테고리 중복 선택 방지
+                    .map(categoryId -> CouponCategory.of(policy, categoryId))
+                    .toList();
+
+            couponCategoryRepository.saveAll(mappings);
+        }
+
+        return convertToResponse(policy);
     }
     // 쿠폰 정책 전체 조회
     @Override
@@ -76,7 +82,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         CouponPolicy policy = couponPolicyRepository.findById(id)
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
         // 발급된 쿠폰 개수 확인
-        long issuedCount = userCouponRepository.countByCouponPolicyCouponPolicyId(id);
+        long issuedCount = userCouponRepository.countByCouponPolicy_CouponPolicyId(id);
 
         if(issuedCount > 0){
             // 발급 후에는 상태만 변경 (검증 제거)
@@ -90,52 +96,57 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         return convertToResponse(saved);
     }
 
-    /**
-     * 통합된 쿠폰 발급 메서드
-     * - Welcome 쿠폰, 생일 쿠폰: targetId = null
-     * - 카테고리 쿠폰: targetId = 카테고리ID
-     * - 도서 쿠폰: targetId = 도서ID
-     *
-     * @param userId 사용자 ID
-     * @param request 쿠폰 발급 요청 (couponPolicyId, targetId)
-     * @return 발급된 사용자 쿠폰 정보
-     */
     @Override
     @Transactional
-    public UserCouponResponse issueCoupon(Long userId, UserCouponIssueRequest request){
+    public UserCouponResponse issueCoupon(Long userId, UserCouponIssueRequest request) {
         // 1. 쿠폰 정책 조회
         CouponPolicy policy = couponPolicyRepository.findById(request.getCouponPolicyId())
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
 
-        // 2. targetId 필수 여부 검증
-        validateTargetId(policy.getCouponType(), request.getTargetId());
+        LocalDateTime now = LocalDateTime.now();
 
-        // 3. 중복 발급 체크 (타입별로 다르게 처리)
-        checkDuplicateIssuance(userId, policy, request.getTargetId());
+        // 2. 정책 상태/기간 검증
+        if (policy.getCouponPolicyStatus() != CouponPolicyStatus.ACTIVE) {
+            throw new InvalidCouponException("발급 불가능한 쿠폰입니다. (비활성 정책)");
+        }
+        if (policy.getValidStartDate() != null && policy.getValidStartDate().isAfter(now)) {
+            throw new InvalidCouponException("아직 발급 기간이 아닙니다.");
+        }
+        if (policy.getValidEndDate() != null && policy.getValidEndDate().isBefore(now)) {
+            throw new InvalidCouponException("발급 기간이 지났습니다.");
+        }
+
+        // 3. 중복 발급 체크
+        boolean alreadyHas =
+                userCouponRepository.existsByUserIdAndCouponPolicy_CouponPolicyId(
+                        userId, policy.getCouponPolicyId());
+
+        if (alreadyHas) {
+            throw new DuplicateCouponException(
+                    String.format("이미 발급받은 쿠폰입니다. (정책ID: %d)", policy.getCouponPolicyId()));
+        }
 
         // 4. 수량 차감
         policy.decreaseQuantity();
 
         // 5. 만료일 계산
-        LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryAt = calculateExpiryDate(policy, now);
 
-        // 6. UserCoupon 생성 및 저장
+        // 6. UserCoupon 생성 (targetId 제거)
         UserCoupon userCoupon = UserCoupon.builder()
                 .userId(userId)
                 .couponPolicy(policy)
-                .targetId(request.getTargetId())
                 .status(CouponStatus.ISSUED)
                 .issuedAt(now)
                 .expiryAt(expiryAt)
                 .build();
 
         UserCoupon saved = userCouponRepository.save(userCoupon);
-        log.info("쿠폰 발급 완료: userId={}, policyId={}, type={}, targetId={}",
-                userId, policy.getCouponPolicyId(), policy.getCouponType(), request.getTargetId());
 
         return convertToUserCouponResponse(saved);
     }
+
+
     // Welcome 쿠폰 발급
     @Override
     @Transactional
@@ -156,7 +167,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                     log.warn("이미 지급된 Welcome 쿠폰입니다: userId={}, couponId={}",userId, policy.getCouponPolicyId());
                     continue;
                 }
-                UserCouponIssueRequest request = new UserCouponIssueRequest(policy.getCouponPolicyId(),null);
+                UserCouponIssueRequest request = new UserCouponIssueRequest(policy.getCouponPolicyId());
                 issueCoupon(userId,request);
 
                 log.info("Welcome 쿠폰 발급 성공: userId={}, couponId={}", userId, policy.getCouponPolicyId());
@@ -170,65 +181,135 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     }
 
-    // ========== Private Helper Methods ==========
+    @Override
+    public List<CategoryCouponResponse> getAvailableCouponsForBook(
+            Long userId,
+            Long primaryCategoryId,
+            Long secondaryCategoryId) {
 
-    /**
-     * targetId 필수 여부 검증
-     * - CATEGORY, BOOKS 타입: targetId 필수
-     * - WELCOME, BIRTHDAY 등: targetId 불필요
-     */
-    private void validateTargetId(CouponType couponType, Long targetId) {
-        if ((couponType == CouponType.CATEGORY || couponType == CouponType.BOOKS)
-                && targetId == null) {
-            throw new InvalidCouponException(
-                    "카테고리/도서 쿠폰은 적용 대상(targetId)이 반드시 필요합니다.");
+        LocalDateTime now = LocalDateTime.now();
+
+        log.info("▶ getAvailableCouponsForBook(userId={}, primary={}, secondary={})",
+                userId, primaryCategoryId, secondaryCategoryId);
+
+        // 1. 현재 유효한 정책 전체 (ACTIVE + 기간 유효)
+        List<CouponPolicy> policies =
+                couponPolicyRepository.findAllAvailable(CouponPolicyStatus.ACTIVE, now);
+
+        log.info("✅ findAllAvailable -> policyIds = {}",
+                policies.stream()
+                        .map(CouponPolicy::getCouponPolicyId)
+                        .toList());
+
+        // 2. 유저가 이미 가진 쿠폰 정책 id
+        List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
+        Set<Long> downloadedPolicyIds = userCoupons.stream()
+                .map(uc -> uc.getCouponPolicy().getCouponPolicyId())
+                .collect(Collectors.toSet());
+
+        log.info("✅ userCoupons size = {}, downloadedPolicyIds = {}",
+                userCoupons.size(), downloadedPolicyIds);
+
+        // 3. 이 책의 카테고리(1단계 + 2단계) 모으기
+        List<Long> categoryIds = new ArrayList<>();
+        if (primaryCategoryId != null) {
+            categoryIds.add(primaryCategoryId);
         }
+        if (secondaryCategoryId != null) {
+            categoryIds.add(secondaryCategoryId);
+        }
+
+        log.info("✅ categoryIds(1,2단계) = {}", categoryIds);
+
+        // 카테고리 정보가 아예 없으면 바로 빈 리스트 반환
+        if (categoryIds.isEmpty()) {
+            log.info("⛔ categoryIds 비어있음 -> 빈 리스트 반환");
+            return List.of();
+        }
+
+        // 4. 이 책의 카테고리들에 매핑된 CATEGORY 정책들 조회
+        List<CouponCategory> mappings =
+                couponCategoryRepository.findByCategoryIdIn(categoryIds);
+
+        log.info("✅ couponCategory mappings(size={}) = {}",
+                mappings.size(),
+                mappings.stream()
+                        .map(cc -> String.format("[cat=%d, policy=%d]",
+                                cc.getCategoryId(),
+                                cc.getCouponPolicy().getCouponPolicyId()))
+                        .toList()
+        );
+
+        // policyId -> 이 책의 카테고리 ID들(1단계/2단계) 매핑
+        Map<Long, Set<Long>> policyIdToCategoryIds = mappings.stream()
+                .collect(Collectors.groupingBy(
+                        cc -> cc.getCouponPolicy().getCouponPolicyId(),
+                        Collectors.mapping(CouponCategory::getCategoryId, Collectors.toSet())
+                ));
+
+        Set<Long> matchingCategoryPolicyIds = policyIdToCategoryIds.keySet();
+
+        log.info("✅ policyIdToCategoryIds = {}", policyIdToCategoryIds);
+        log.info("✅ matchingCategoryPolicyIds = {}", matchingCategoryPolicyIds);
+
+        // 5. 최종 필터링 & 응답 DTO 변환 (디버그용: 스트림 → for문)
+        List<CategoryCouponResponse> result = new ArrayList<>();
+
+        for (CouponPolicy policy : policies) {
+            Long pid = policy.getCouponPolicyId();
+            CouponType type = policy.getCouponType();
+
+            log.info("➡️ candidate policy: id={}, type={}", pid, type);
+
+            // 1) CATEGORY 아니면 스킵
+            if (type != CouponType.CATEGORY) {
+                log.info("   ❌ skip(id={}): not CATEGORY", pid);
+                continue;
+            }
+
+            // 2) 이 책의 1/2단계 카테고리에 매핑된 정책인지
+            if (!matchingCategoryPolicyIds.contains(pid)) {
+                log.info("   ❌ skip(id={}): not matched category", pid);
+                continue;
+            }
+
+            // 3) 이미 다운로드한 정책인지
+            if (downloadedPolicyIds.contains(pid)) {
+                log.info("   ❌ skip(id={}): already downloaded", pid);
+                continue;
+            }
+
+            // 4) 이 정책이 이 책의 어떤 카테고리에 매핑됐는지 선택
+            Set<Long> mappedCategoryIds = policyIdToCategoryIds.get(pid);
+            log.info("   ✅ matched(id={}): mappedCategoryIds = {}", pid, mappedCategoryIds);
+
+            Long categoryIdForThisBook = null;
+
+            if (mappedCategoryIds != null) {
+                // 2단계 우선
+                if (secondaryCategoryId != null && mappedCategoryIds.contains(secondaryCategoryId)) {
+                    categoryIdForThisBook = secondaryCategoryId;
+                }
+                // 아니면 1단계
+                else if (primaryCategoryId != null && mappedCategoryIds.contains(primaryCategoryId)) {
+                    categoryIdForThisBook = primaryCategoryId;
+                }
+            }
+
+            log.info("   → chosen categoryIdForThisBook(id={}) = {}", pid, categoryIdForThisBook);
+
+            result.add(CategoryCouponResponse.of(policy, categoryIdForThisBook));
+        }
+
+        log.info("🎯 final downloadable policyIds = {}",
+                result.stream()
+                        .map(r -> r.getPolicyInfo().getCouponPolicyId())
+                        .toList());
+
+        return result;
     }
 
-    /**
-     * 중복 발급 체크
-     *
-     * 쿠폰 타입별 중복 체크 로직:
-     * 1. CATEGORY/BOOKS 쿠폰: 정책ID + targetId 조합으로 체크
-     *    - 같은 카테고리/도서에 대해 같은 정책의 쿠폰은 1번만 발급
-     *    - 예: "소설 카테고리 10% 할인" 쿠폰을 이미 받았으면 재발급 불가
-     *
-     * 2. WELCOME/BIRTHDAY 등 일반 쿠폰: 정책ID만으로 체크
-     *    - targetId가 없으므로 정책 단위로만 체크
-     *    - 예: "Welcome 쿠폰"은 회원당 1번만 발급
-     *
-     * @param userId 사용자 ID
-     * @param policy 쿠폰 정책
-     * @param targetId 적용 대상 ID (null 가능)
-     */
-    private void checkDuplicateIssuance(Long userId, CouponPolicy policy, Long targetId) {
-        boolean isDuplicate;
 
-        if (policy.getCouponType() == CouponType.CATEGORY ||
-                policy.getCouponType() == CouponType.BOOKS) {
-            // 카테고리/도서 쿠폰: 정책 + targetId 조합으로 체크
-            isDuplicate = userCouponRepository
-                    .existsByUserIdAndCouponPolicy_CouponPolicyIdAndTargetId(
-                            userId, policy.getCouponPolicyId(), targetId);
-
-            if (isDuplicate) {
-                throw new DuplicateCouponException(
-                        String.format("이미 발급받은 쿠폰입니다. (정책ID: %d, 대상ID: %d)",
-                                policy.getCouponPolicyId(), targetId));
-            }
-        } else {
-            // Welcome, Birthday 등 일반 쿠폰: 정책만으로 체크
-            isDuplicate = userCouponRepository
-                    .existsByUserIdAndCouponPolicy_CouponPolicyId(
-                            userId, policy.getCouponPolicyId());
-
-            if (isDuplicate) {
-                throw new DuplicateCouponException(
-                        String.format("이미 발급받은 쿠폰입니다. (정책ID: %d)",
-                                policy.getCouponPolicyId()));
-            }
-        }
-    }
 
     /**
      * 쿠폰 만료일 계산
@@ -275,12 +356,16 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         return UserCouponResponse.builder()
                 .userCouponId(userCoupon.getUserCouponId())
                 .userId(userCoupon.getUserId())
-                .couponPolicy(convertToResponse(userCoupon.getCouponPolicy())) // coupon -> couponPolicy
+                .couponPolicy(convertToResponse(userCoupon.getCouponPolicy()))
                 .status(userCoupon.getStatus())
                 .issuedAt(userCoupon.getIssuedAt())
-                .expiryAt(userCoupon.getExpiryAt()) // expiryAt으로 통일
+                .expiryAt(userCoupon.getExpiryAt())
                 .usedAt(userCoupon.getUsedAt())
-                .targetId(userCoupon.getTargetId())
+                // itemName은 아직 없으니 null 또는 "" 로 두고,
+                // 나중에 마이페이지 조회 서비스에서 채우는 걸로 하자.
+                .itemName(null)
                 .build();
     }
+
+
 }

@@ -35,4 +35,7 @@ public interface UserCouponService {
 
     void cancelCouponUsage(Long userId, @Valid CouponCancelRequest request);
 
+    UserCouponResponse downloadCoupon(Long userId, Long couponPolicyId);
+
+
 }

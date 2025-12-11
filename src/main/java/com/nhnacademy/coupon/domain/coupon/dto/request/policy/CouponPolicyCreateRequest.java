@@ -40,26 +40,21 @@ public class CouponPolicyCreateRequest {
 
     @Min(value = 0, message = "최소 주문 금액은 0 이상이어야 합니다.")
     private Long minOrderAmount;
-
     private Long maxDiscountAmount;
-
     private Integer validDays; // 쿠폰 상대 유효 일수
-
     private LocalDateTime validStartDate; // 쿠폰 고정 유효기간 시작일
-
     private LocalDateTime validEndDate; // 쿠폰 고정 유효기간 끝나는일
-
     private Integer quantity; // 수량
 
     @Enumerated(EnumType.STRING)
     private CouponPolicyStatus couponPolicyStatus;
 
-    @Schema(description = "적용할 카테고리 ID 리스트 (CATEGORY 타입일 때 필수)")
-    private List<Long> targetCategoryIds;
+    // 🔹 CATEGORY 쿠폰 전용: 매핑할 카테고리 목록
+    private List<Long> categoryIds;
 
-    @Schema(description = "적용할 도서 ID 리스트 (BOOKS 타입일 때 필수)")
-    private List<Long> targetBookIds;
-
+    public List<Long> getCategoryIds() {
+        return categoryIds;
+    }
     // CouponPolicyCreateRequest 클래스 내부
     public CouponPolicy toEntity() {
         return CouponPolicy.builder()

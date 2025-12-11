@@ -2,6 +2,7 @@ package com.nhnacademy.coupon.global.client;
 
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategorySimpleResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,5 +36,10 @@ public interface BookServiceClient {
      */
     @GetMapping("/api/books/{bookId}")
     BookResponse getBook(@PathVariable Long bookId);
+
+    @GetMapping("/api/books/categoriesIds")
+    List<CategorySimpleResponse> getCategoriesByIds(
+            @RequestParam("ids") List<Long> categoryIds
+    );
 
 }

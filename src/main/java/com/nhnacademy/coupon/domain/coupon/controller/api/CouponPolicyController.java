@@ -29,9 +29,8 @@ public class CouponPolicyController {
     @Operation(summary = "쿠폰 정책 생성", description = "새로운 쿠폰 정책을 생성합니다.")
     @PostMapping("/create")
     public ResponseEntity<CouponPolicyResponse> createCoupon(
-            @RequestHeader(value = "X-Gateway-Pass", required = false) String gatewayPass,
+            @RequestHeader(value = "X-Gateway-Pass", required = false)
             @Valid @RequestBody CouponPolicyCreateRequest request) {
-        System.out.println(gatewayPass);
         CouponPolicyResponse response = couponPolicyService.createCouponPolicy(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

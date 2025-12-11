@@ -3,7 +3,6 @@ package com.nhnacademy.coupon.domain.coupon.controller.api;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.BatchCouponUseRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponCancelRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponCancelResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.UserCouponService;

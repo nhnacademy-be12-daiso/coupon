@@ -14,34 +14,30 @@ import java.util.List;
 @Repository
 public interface UserCouponRepository extends JpaRepository<UserCoupon, Long> {
 
-//    // 특정 사용자의 모든 쿠폰 조회
-//    List<UserCoupon> findByUserId(Long userId);
-
     @Query("SELECT uc FROM UserCoupon uc JOIN FETCH uc.couponPolicy WHERE uc.userId = :userId")
     List<UserCoupon> findByUserId(@Param("userId") Long userId);
 
-    // 특정 사용자의 특정 상태 쿠폰 조회
-    @Query("SELECT uc FROM UserCoupon uc JOIN FETCH uc.couponPolicy WHERE uc.userId = :userId AND uc.status = :status")
-    List<UserCoupon> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") CouponStatus status);
+    @Query("SELECT uc FROM UserCoupon uc JOIN FETCH uc.couponPolicy " +
+            "WHERE uc.userId = :userId AND uc.status = :status")
+    List<UserCoupon> findByUserIdAndStatus(@Param("userId") Long userId,
+                                           @Param("status") CouponStatus status);
 
     // 특정 사용자의 사용 가능한 쿠폰 조회 (ISSUED 또는 CANCELED)
     List<UserCoupon> findByUserIdAndStatusIn(Long userId, List<CouponStatus> statuses);
 
+    // 특정 정책에 대한 쿠폰을 이 유저가 이미 가지고 있는지
     boolean existsByUserIdAndCouponPolicy_CouponPolicyId(Long userId, Long couponPolicyId);
 
-    List<UserCoupon> findAllByStatusAndExpiryAtBefore(CouponStatus status, LocalDateTime expiryAtBefore);
+    List<UserCoupon> findAllByStatusAndExpiryAtBefore(CouponStatus status,
+                                                      LocalDateTime expiryAtBefore);
 
-    long countByCouponPolicyCouponPolicyId(Long couponPolicyId); // <-- 이 줄로 변경
+    // 발급된 쿠폰 개수
+    long countByCouponPolicy_CouponPolicyId(Long couponPolicyId);
 
-    // UserCouponRepository.java에 추가
     @Modifying
-    @Query("UPDATE UserCoupon uc SET uc.status = 'EXPIRED' WHERE uc.status = 'ISSUED' AND uc.expiryAt < :now")
+    @Query("UPDATE UserCoupon uc " +
+            "SET uc.status = 'EXPIRED' " +
+            "WHERE uc.status = 'ISSUED' AND uc.expiryAt < :now")
     int bulkExpireCoupons(@Param("now") LocalDateTime now);
 
-    // "정책 ID + 타겟 ID" 조합으로 이미 발급된 쿠폰이 있는지 확인
-    boolean existsByUserIdAndCouponPolicy_CouponPolicyIdAndTargetId(
-            Long userId,
-            Long couponPolicyId,
-            Long targetId
-    );
 }

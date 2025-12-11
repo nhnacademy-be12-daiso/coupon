@@ -1,26 +1,17 @@
 package com.nhnacademy.coupon.domain.coupon.dto.request.issue;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Schema(description = "사용자 쿠폰 발급 요청")
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
 public class UserCouponIssueRequest {
-//    @NotNull(message = "사용자 ID는 필수입니다.")
-//    private Long userId;
-//     userId는 받을 필요가 없다. 이유는 토큰에서 받기 때문이다.
 
-    @NotNull(message = "쿠폰 ID는 필수입니다.")
+    @NotNull(message = "쿠폰 정책 ID는 필수입니다.")
     private Long couponPolicyId;
-
-    // 어떤 카테고리(또는 책) 문맥에서 발급받는지 식별
-    @Schema(description = "적용 대상 ID (카테고리 ID 또는 도서 ID)")
-    private Long targetId;
 }

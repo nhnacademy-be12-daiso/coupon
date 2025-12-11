@@ -3,6 +3,8 @@ package com.nhnacademy.coupon.domain.coupon.service;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryCouponResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.policy.AvailableCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import java.util.List;
@@ -26,5 +28,10 @@ public interface CouponPolicyService {
     // Welcome 쿠폰 발급
     void issueWelcomeCoupon(Long userId);
 
+    List<CategoryCouponResponse> getAvailableCouponsForBook(
+            Long userId,
+            Long primaryCategoryId,
+            Long secondaryCategoryId
+    );
 
 }

@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.dto.response.policy;
 
+import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
@@ -23,6 +24,21 @@ public record CouponPolicyResponse(
         LocalDateTime validStartDate,
         LocalDateTime validEndDate,
         CouponPolicyStatus policyStatus,
-        Integer quantity
-) {
+        Integer quantity) {
+    public static CouponPolicyResponse from(CouponPolicy policy) {
+        return CouponPolicyResponse.builder()
+                .couponPolicyId(policy.getCouponPolicyId())
+                .couponPolicyName(policy.getCouponPolicyName())
+                .couponType(policy.getCouponType())
+                .discountWay(policy.getDiscountWay())
+                .discountAmount(policy.getDiscountAmount())
+                .minOrderAmount(policy.getMinOrderAmount())
+                .maxDiscountAmount(policy.getMaxDiscountAmount())
+                .validDays(policy.getValidDays())
+                .validStartDate(policy.getValidStartDate())
+                .validEndDate(policy.getValidEndDate())
+                .policyStatus(policy.getCouponPolicyStatus())
+                .quantity(policy.getQuantity())
+                .build();
+    }
 }
