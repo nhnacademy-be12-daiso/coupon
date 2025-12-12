@@ -40,12 +40,17 @@ public class UserCoupon {
     @Column(name = "expiry_at", nullable = false) // 쿠폰 만료일
     private LocalDateTime expiryAt;
 
+    // 주문 아이디
+    @Column(name = "user_order_id")
+    private Long usedOrderId; // nullable
+
+
 
     /**
      * 쿠폰 사용 처리
      * ISSUED 또는 CANCELED 상태에서만 사용 가능
      */
-    public void use() {
+    public void use(Long orderId) {
         // 사용 가능한 상태 확인
         if (this.status != CouponStatus.ISSUED && this.status != CouponStatus.CANCELED) {
             throw new IllegalStateException(
@@ -60,6 +65,7 @@ public class UserCoupon {
 
         this.status = CouponStatus.USED;
         this.usedAt = LocalDateTime.now();
+        this.usedOrderId = orderId;
     }
 
     /**
@@ -76,7 +82,7 @@ public class UserCoupon {
      * 주문 취소로 인한 쿠폰 복구
      * USED 상태에서만 CANCELED로 변경 가능
      */
-    public void cancel() {
+    public void cancel(Long orderId) {
         if (this.status != CouponStatus.USED) {
             throw new IllegalStateException(
                     "사용된 쿠폰만 취소할 수 있습니다. 현재 상태: " + this.status
@@ -92,6 +98,7 @@ public class UserCoupon {
 
         this.status = CouponStatus.ISSUED;
         this.usedAt = null;  // 사용 시간 초기화
+        this.usedOrderId = null;
     }
 
     /**

@@ -6,5 +6,4 @@ public record CouponUseItemRequest(
         @NotNull Long bookId,
         @NotNull Long userCouponId
 ) {
-
 }

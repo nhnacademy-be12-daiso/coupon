@@ -3,7 +3,6 @@ package com.nhnacademy.coupon.domain.coupon.service;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.BatchCouponUseRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponCancelRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
@@ -13,9 +12,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public interface UserCouponService {
-
-    // 쿠폰 사용 (주문 시)
-    CouponApplyResponse applyCoupon(Long userCouponId, BigDecimal orderAmount, List<Long> productTargetIds);
 
     // 사용자 쿠폰 목록 조회
     List<UserCouponResponse> getUserCoupons(Long userId);
