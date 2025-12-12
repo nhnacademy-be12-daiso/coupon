@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
+import com.nhnacademy.coupon.domain.coupon.dto.query.BookCouponQuery;
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
@@ -27,13 +28,15 @@ public class CategoryCouponController {
         // 1. 도서 카테고리 조회
         BookCategoryResponse bookCategory = bookServiceClient.getBookCategory(bookId);
 
-        // 2. 1단계 + 2단계에 대해 다운 가능한 쿠폰 조회
-        List<CategoryCouponResponse> responses =
-                couponPolicyService.getAvailableCouponsForBook(
-                        userId,
-                        bookCategory.getPrimaryCategoryId(),
-                        bookCategory.getSecondaryCategoryId()
-                );
+        // 2. 조회 조건 DTO 구성
+        BookCouponQuery query = BookCouponQuery.builder()
+                .userId(userId)
+                .bookId(bookId)
+                .primaryCategoryId(bookCategory.getPrimaryCategoryId())
+                .secondaryCategoryId(bookCategory.getSecondaryCategoryId())
+                .build();
+        // 3. 서비스 호출
+        List<CategoryCouponResponse> responses = couponPolicyService.getAvailableCouponsForBook(query);
 
         return ResponseEntity.ok(responses);
     }

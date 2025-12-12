@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.service.impl;
 
+import com.nhnacademy.coupon.domain.coupon.dto.query.BookCouponQuery;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
@@ -32,6 +33,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     private final CouponPolicyRepository couponPolicyRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponCategoryRepository couponCategoryRepository;
+    private final CouponBookRepository couponBookRepository;
 
 
     // 쿠폰 정책 생성
@@ -40,7 +42,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         // 1. 정책 저장
         CouponPolicy policy = couponPolicyRepository.save(request.toEntity());
 
-        // 2. CATEGORY 타입이면 categoryIds를 coupon_categories에 저장
+        // 2-1. CATEGORY 타입이면 categoryIds를 coupon_categories에 저장
         if (policy.getCouponType() == CouponType.CATEGORY &&
                 request.getCategoryIds() != null &&
                 !request.getCategoryIds().isEmpty()) {
@@ -51,6 +53,16 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                     .toList();
 
             couponCategoryRepository.saveAll(mappings);
+        }
+        // 2-2 BOOK 타입이면 bookIDs를 coupon_books에 저장
+        if(policy.getCouponType() == CouponType.BOOKS &&
+                request.getBookIds() != null &&
+                !request.getBookIds().isEmpty()){
+            List<CouponBook> bookMappings = request.getBookIds().stream()
+                    .distinct()
+                    .map(bookId -> CouponBook.of(policy, bookId))
+                    .toList();
+            couponBookRepository.saveAll(bookMappings);
         }
 
         return convertToResponse(policy);
@@ -182,24 +194,21 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     }
 
     @Override
-    public List<CategoryCouponResponse> getAvailableCouponsForBook(
-            Long userId,
-            Long primaryCategoryId,
-            Long secondaryCategoryId) {
+    public List<CategoryCouponResponse> getAvailableCouponsForBook(BookCouponQuery query) {
+
+        Long userId = query.getUserId();
+        Long bookId = query.getBookId();
+        Long primaryCategoryId = query.getPrimaryCategoryId();
+        Long secondaryCategoryId = query.getSecondaryCategoryId();
 
         LocalDateTime now = LocalDateTime.now();
 
         log.info("▶ getAvailableCouponsForBook(userId={}, primary={}, secondary={})",
                 userId, primaryCategoryId, secondaryCategoryId);
 
-        // 1. 현재 유효한 정책 전체 (ACTIVE + 기간 유효)
+        // 1. 현재 유효한 정책 전체
         List<CouponPolicy> policies =
                 couponPolicyRepository.findAllAvailable(CouponPolicyStatus.ACTIVE, now);
-
-        log.info("✅ findAllAvailable -> policyIds = {}",
-                policies.stream()
-                        .map(CouponPolicy::getCouponPolicyId)
-                        .toList());
 
         // 2. 유저가 이미 가진 쿠폰 정책 id
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
@@ -207,106 +216,72 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .map(uc -> uc.getCouponPolicy().getCouponPolicyId())
                 .collect(Collectors.toSet());
 
-        log.info("✅ userCoupons size = {}, downloadedPolicyIds = {}",
-                userCoupons.size(), downloadedPolicyIds);
 
         // 3. 이 책의 카테고리(1단계 + 2단계) 모으기
         List<Long> categoryIds = new ArrayList<>();
-        if (primaryCategoryId != null) {
-            categoryIds.add(primaryCategoryId);
-        }
-        if (secondaryCategoryId != null) {
-            categoryIds.add(secondaryCategoryId);
-        }
-
-        log.info("✅ categoryIds(1,2단계) = {}", categoryIds);
+        if (primaryCategoryId != null) { categoryIds.add(primaryCategoryId); }
+        if (secondaryCategoryId != null) { categoryIds.add(secondaryCategoryId); }
 
         // 카테고리 정보가 아예 없으면 바로 빈 리스트 반환
-        if (categoryIds.isEmpty()) {
-            log.info("⛔ categoryIds 비어있음 -> 빈 리스트 반환");
-            return List.of();
+        Map<Long, Set<Long>> policyIdToCategoryIds;
+
+        if (!categoryIds.isEmpty()) {
+            List<CouponCategory> mappings =
+                    couponCategoryRepository.findByCategoryIdIn(categoryIds);
+
+            policyIdToCategoryIds = mappings.stream()
+                    .collect(Collectors.groupingBy(
+                            cc -> cc.getCouponPolicy().getCouponPolicyId(),
+                            Collectors.mapping(CouponCategory::getCategoryId, Collectors.toSet())
+                    ));
+        } else {
+            policyIdToCategoryIds = Map.of();
         }
-
-        // 4. 이 책의 카테고리들에 매핑된 CATEGORY 정책들 조회
-        List<CouponCategory> mappings =
-                couponCategoryRepository.findByCategoryIdIn(categoryIds);
-
-        log.info("✅ couponCategory mappings(size={}) = {}",
-                mappings.size(),
-                mappings.stream()
-                        .map(cc -> String.format("[cat=%d, policy=%d]",
-                                cc.getCategoryId(),
-                                cc.getCouponPolicy().getCouponPolicyId()))
-                        .toList()
-        );
-
-        // policyId -> 이 책의 카테고리 ID들(1단계/2단계) 매핑
-        Map<Long, Set<Long>> policyIdToCategoryIds = mappings.stream()
-                .collect(Collectors.groupingBy(
-                        cc -> cc.getCouponPolicy().getCouponPolicyId(),
-                        Collectors.mapping(CouponCategory::getCategoryId, Collectors.toSet())
-                ));
 
         Set<Long> matchingCategoryPolicyIds = policyIdToCategoryIds.keySet();
 
-        log.info("✅ policyIdToCategoryIds = {}", policyIdToCategoryIds);
-        log.info("✅ matchingCategoryPolicyIds = {}", matchingCategoryPolicyIds);
+        // 3-2. BOOKS 매핑: 이 bookId에 붙은 정책들
+        List<CouponBook> bookMappings = couponBookRepository.findByBookId(bookId);
+        Set<Long> bookPolicyIds = bookMappings.stream()
+                .map(cb -> cb.getCouponPolicy().getCouponPolicyId())
+                .collect(Collectors.toSet());
 
-        // 5. 최종 필터링 & 응답 DTO 변환 (디버그용: 스트림 → for문)
-        List<CategoryCouponResponse> result = new ArrayList<>();
 
-        for (CouponPolicy policy : policies) {
-            Long pid = policy.getCouponPolicyId();
-            CouponType type = policy.getCouponType();
+        // 4. 필터링 + DTO 변환
+        return policies.stream()
+                // 이미 가진 건 제외
+                .filter(policy -> !downloadedPolicyIds.contains(policy.getCouponPolicyId()))
+                // 이 책에서 쓸 수 있는 타입만 남기기
+                .filter(policy -> {
+                    CouponType type = policy.getCouponType();
+                    Long pid = policy.getCouponPolicyId();
 
-            log.info("➡️ candidate policy: id={}, type={}", pid, type);
+                    if (type == CouponType.CATEGORY) {
+                        return matchingCategoryPolicyIds.contains(pid);
+                    }
+                    if (type == CouponType.BOOKS) {
+                        return bookPolicyIds.contains(pid);
+                    }
+                    return false; // GENERAL / WELCOME / BIRTHDAY 등은 도서 상세에서는 제외
+                })
+                .map(policy -> {
+                    Long policyId = policy.getCouponPolicyId();
+                    Long categoryIdForThisBook = null;
 
-            // 1) CATEGORY 아니면 스킵
-            if (type != CouponType.CATEGORY) {
-                log.info("   ❌ skip(id={}): not CATEGORY", pid);
-                continue;
-            }
+                    if (policy.getCouponType() == CouponType.CATEGORY) {
+                        Set<Long> mappedCategoryIds = policyIdToCategoryIds.get(policyId);
+                        if (mappedCategoryIds != null) {
+                            if (secondaryCategoryId != null && mappedCategoryIds.contains(secondaryCategoryId)) {
+                                categoryIdForThisBook = secondaryCategoryId;  // 2단계 우선
+                            } else if (primaryCategoryId != null && mappedCategoryIds.contains(primaryCategoryId)) {
+                                categoryIdForThisBook = primaryCategoryId;    // 아니면 1단계
+                            }
+                        }
+                    }
 
-            // 2) 이 책의 1/2단계 카테고리에 매핑된 정책인지
-            if (!matchingCategoryPolicyIds.contains(pid)) {
-                log.info("   ❌ skip(id={}): not matched category", pid);
-                continue;
-            }
-
-            // 3) 이미 다운로드한 정책인지
-            if (downloadedPolicyIds.contains(pid)) {
-                log.info("   ❌ skip(id={}): already downloaded", pid);
-                continue;
-            }
-
-            // 4) 이 정책이 이 책의 어떤 카테고리에 매핑됐는지 선택
-            Set<Long> mappedCategoryIds = policyIdToCategoryIds.get(pid);
-            log.info("   ✅ matched(id={}): mappedCategoryIds = {}", pid, mappedCategoryIds);
-
-            Long categoryIdForThisBook = null;
-
-            if (mappedCategoryIds != null) {
-                // 2단계 우선
-                if (secondaryCategoryId != null && mappedCategoryIds.contains(secondaryCategoryId)) {
-                    categoryIdForThisBook = secondaryCategoryId;
-                }
-                // 아니면 1단계
-                else if (primaryCategoryId != null && mappedCategoryIds.contains(primaryCategoryId)) {
-                    categoryIdForThisBook = primaryCategoryId;
-                }
-            }
-
-            log.info("   → chosen categoryIdForThisBook(id={}) = {}", pid, categoryIdForThisBook);
-
-            result.add(CategoryCouponResponse.of(policy, categoryIdForThisBook));
-        }
-
-        log.info("🎯 final downloadable policyIds = {}",
-                result.stream()
-                        .map(r -> r.getPolicyInfo().getCouponPolicyId())
-                        .toList());
-
-        return result;
+                    return CategoryCouponResponse.of(policy, categoryIdForThisBook);
+                })
+                .toList();
     }
 
 

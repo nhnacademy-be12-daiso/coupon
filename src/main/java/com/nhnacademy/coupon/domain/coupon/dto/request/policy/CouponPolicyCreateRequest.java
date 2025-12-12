@@ -49,8 +49,11 @@ public class CouponPolicyCreateRequest {
     @Enumerated(EnumType.STRING)
     private CouponPolicyStatus couponPolicyStatus;
 
-    // 🔹 CATEGORY 쿠폰 전용: 매핑할 카테고리 목록
+    // CATEGORY 쿠폰 전용: 매핑할 카테고리 목록
     private List<Long> categoryIds;
+
+    // BOOKS 전용
+    private List<Long> bookIds;
 
     public List<Long> getCategoryIds() {
         return categoryIds;

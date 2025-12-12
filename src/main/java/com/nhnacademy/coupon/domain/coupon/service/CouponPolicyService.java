@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.service;
 
+import com.nhnacademy.coupon.domain.coupon.dto.query.BookCouponQuery;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.issue.UserCouponIssueRequest;
@@ -28,10 +29,6 @@ public interface CouponPolicyService {
     // Welcome 쿠폰 발급
     void issueWelcomeCoupon(Long userId);
 
-    List<CategoryCouponResponse> getAvailableCouponsForBook(
-            Long userId,
-            Long primaryCategoryId,
-            Long secondaryCategoryId
-    );
+    List<CategoryCouponResponse> getAvailableCouponsForBook(BookCouponQuery query);
 
 }
