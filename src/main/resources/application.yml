@@ -24,6 +24,11 @@ spring:
     port: ${SPRING_RABBITMQ_PORT}
     username: ${SPRING_RABBITMQ_USERNAME}
     password: ${SPRING_RABBITMQ_PASSWORD}
+
+    listener:
+      simple:
+        default-requeue-rejected: false # 무한 재큐잉 방지
+
 rabbitmq:
   exchange:
     name: team3.coupon.exchange
@@ -32,6 +37,13 @@ rabbitmq:
   queue:
     name: team3.coupon.welcome.queue  # <-- 메시지가 쌓일 실제 우편함 이름
     coupon: team3.user.deducted.coupon.queue.dev
+
+  dlx:
+    name: team3.coupon.welcome.dlx
+  dlq:
+    name: team3.coupon.welcome.dlq
+  dlq-routing:
+    key: team3.coupon.welcome.dlq
 
 eureka:
   instance:
