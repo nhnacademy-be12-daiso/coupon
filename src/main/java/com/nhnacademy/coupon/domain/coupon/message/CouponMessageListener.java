@@ -31,7 +31,7 @@ public class CouponMessageListener {
             log.info("[RabbitMQ Consumer] 웰컴 쿠폰 발급 완료! userCreatedId={}", message.userCreatedId());
         } catch (Exception e){
             log.error("[RabbitMQ Consumer] 쿠폰 발급 실패: userCreatedId={}, error={}", message.userCreatedId(), e.getMessage());
+            throw e; // 이 줄이 DLQ로 보내는 트리거
         }
-        log.info("===========================");
     }
 }

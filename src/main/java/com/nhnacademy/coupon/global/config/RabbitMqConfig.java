@@ -1,9 +1,6 @@
 package com.nhnacademy.coupon.global.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -25,10 +22,23 @@ public class RabbitMqConfig {
     @Value("${rabbitmq.queue.name}")
     private String queueName;
 
+    @Value("${rabbitmq.dlx.name}")
+    private String dlxName;
+
+    @Value("${rabbitmq.dlq.name}")
+    private String dlqName;
+
+    @Value("${rabbitmq.dlq-routing.key}")
+    private String dlqRoutingKey;
+
+
     // 큐 생성 (메시지 담을 통)
     @Bean
     public Queue queue(){
-        return new Queue(queueName, true); // 서버가 재시작해도 큐가 사라지지 않음
+        return QueueBuilder.durable(queueName)
+                .deadLetterExchange(dlxName) // 실패 메시지를 보내는 출구
+                .deadLetterRoutingKey(dlqRoutingKey) // 실패 메시지가 실제로 쌓이는 보관함
+                .build();
     }
 
     // Exchange 생성 (User 서버와 이름이 같아야 함, 우체국)
@@ -90,6 +100,22 @@ public class RabbitMqConfig {
     @Bean
     public TopicExchange couponExchange() {
         return new TopicExchange(COUPON_EXCHANGE);
+    }
+
+
+    @Bean
+    public DirectExchange welcomeDlx() {
+        return new DirectExchange(dlxName);
+    }
+
+    @Bean(name = "welcomeDlq")
+    public Queue welcomeDlq() {
+        return QueueBuilder.durable(dlqName).build();
+    }
+
+    @Bean
+    public Binding bindWelcomeDlq(Queue welcomeDlq, DirectExchange welcomeDlx) {
+        return BindingBuilder.bind(welcomeDlq).to(welcomeDlx).with(dlqRoutingKey);
     }
 
 }
