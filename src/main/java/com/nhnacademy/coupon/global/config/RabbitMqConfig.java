@@ -87,7 +87,10 @@ public class RabbitMqConfig {
 
     @Bean
     public Queue couponQueue() {
-        return new Queue(COUPON_QUEUE, true);
+        return QueueBuilder.durable(COUPON_QUEUE)
+                .withArgument("x-dead-letter-exchange", "team3.coupon.dlx") // DLQ 설정
+                .withArgument("x-dead-letter-routing-key", "fail.book")
+                .build();
     }
 
     @Bean
