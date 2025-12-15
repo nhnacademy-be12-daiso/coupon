@@ -34,4 +34,15 @@ public class CouponMessageListener {
             throw e; // 이 줄이 DLQ로 보내는 트리거
         }
     }
+//    @RabbitListener(queues = "${rabbitmq.queue.name}")
+//    public void handleWelcomeCouponIssue(CouponIssueMessage message){
+//        log.info("[Consumer] received userId={}", message.userCreatedId());
+//
+//        // 테스트: 특정 userId면 일부러 실패
+//        if (message.userCreatedId() == 999L) {
+//            throw new RuntimeException("TEST FAIL: forced error");
+//        }
+//
+//        couponPolicyService.issueWelcomeCoupon(message.userCreatedId());
+//    }
 }
