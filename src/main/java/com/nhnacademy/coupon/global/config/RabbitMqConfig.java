@@ -21,7 +21,7 @@ public class RabbitMqConfig {
     private String routingKey;
 
     @Value("${rabbitmq.queue.name}")
-    private String queueName;
+    private String welcomeQueueName; // team3.coupon.welcome.queue.v2
 
     @Value("${rabbitmq.retry.exchange.name}")
     private String retryExchangeName;
@@ -36,13 +36,13 @@ public class RabbitMqConfig {
     private Integer retryDelayMs;
 
     @Value("${rabbitmq.dlx.name}")
-    private String dlxName;
+    private String dlxName; // team3.coupon.welcome.dlx
 
     @Value("${rabbitmq.dlq.name}")
-    private String dlqName;
+    private String dlqName; // team3.coupon.welcome.dlq
 
     @Value("${rabbitmq.dlq-routing.key}")
-    private String dlqRoutingKey;
+    private String dlqRoutingKey; // team3.coupon.welcome.dlq
 
     // 1) 본 Exchange (Producer가 보내는 곳)
     @Bean(name = "couponMainExchange")
@@ -53,13 +53,9 @@ public class RabbitMqConfig {
     // 본 큐(v2) - Producer routingKey(team3.coupon.welcome)로 바인딩
     @Bean(name = "welcomeQueueV2")
     public Queue welcomeQueueV2() {
-        return QueueBuilder.durable(queueName).build();
+        return QueueBuilder.durable(welcomeQueueName)
+                .build();
     }
-    // "이 'exchange'(우체국)에"
-    // "'routingKey'(수신인: team3.coupon.welcome)라고 적힌 편지가 오면"
-    // "저 'queue'(우편함: team3.coupon.welcome.queue)로 보내주세요!"
-    // 라는 규칙(Binding)을 생성해서 RabbitMQ에 등록함.
-    // 바인딩 (큐와 익스체인지를 라우팅 키로 연결)
 
     // 기존 routingKey(team3.coupon.welcome)로 v2 큐에 바인딩
     @Bean
@@ -126,50 +122,79 @@ public class RabbitMqConfig {
     }
 
     // ----- saga 설정 ------
-
+    // ====== (SAGA) user exchange → coupon queue binding ======
     private static final String USER_EXCHANGE = "team3.user.exchange";
-    @Value("${rabbitmq.queue.coupon}")
-    private String COUPON_QUEUE;
     private static final String ROUTING_KEY_DEDUCTED = "point.deducted";
 
-    private static final String COUPON_EXCHANGE = "team3.coupon.exchange";
+    /**
+     * ⚠️ 여기 절대 welcome 큐 이름 쓰면 안 됨!
+     * yml에 rabbitmq.queue.coupon: team3.coupon.saga.queue 이런 식으로 별도 큐를 넣어주세요.
+     */
+    @Value("${rabbitmq.queue.coupon}")
+    private String couponSagaQueueName;
 
-    @Bean
+    @Bean(name = "userExchange")
     public TopicExchange userExchange() {
         return new TopicExchange(USER_EXCHANGE);
     }
 
-    @Bean
-    public Queue couponQueue() {
-        return new Queue(COUPON_QUEUE, true);
+    @Bean(name = "couponSagaQueue")
+    public Queue couponSagaQueue() {
+        return QueueBuilder.durable(couponSagaQueueName).build();
     }
 
     @Bean
-    public Binding bindingUserDeducted(Queue couponQueue, TopicExchange userExchange) {
-        return BindingBuilder.bind(couponQueue)
-                .to(userExchange)
-                .with(ROUTING_KEY_DEDUCTED);
+    public Binding bindUserDeducted(
+            @Qualifier("couponSagaQueue") Queue q,
+            @Qualifier("userExchange") TopicExchange ex
+    ) {
+        return BindingBuilder.bind(q).to(ex).with(ROUTING_KEY_DEDUCTED);
     }
 
-    @Bean
-    public TopicExchange couponExchange() {
-        return new TopicExchange(COUPON_EXCHANGE);
-    }
-
-
-    @Bean
-    public DirectExchange welcomeDlx() {
-        return new DirectExchange(dlxName);
-    }
-
-    @Bean(name = "welcomeDlq")
-    public Queue welcomeDlq() {
-        return QueueBuilder.durable(dlqName).build();
-    }
-
-    @Bean
-    public Binding bindWelcomeDlq(Queue welcomeDlq, DirectExchange welcomeDlx) {
-        return BindingBuilder.bind(welcomeDlq).to(welcomeDlx).with(dlqRoutingKey);
-    }
+//    private static final String USER_EXCHANGE = "team3.user.exchange";
+////    @Value("${rabbitmq.queue.coupon}")
+//    @Value("${rabbitmq.queue.name}")
+//    private String COUPON_QUEUE;
+//    private static final String ROUTING_KEY_DEDUCTED = "point.deducted";
+//
+//    private static final String COUPON_EXCHANGE = "team3.coupon.exchange";
+//
+//    @Bean
+//    public TopicExchange userExchange() {
+//        return new TopicExchange(USER_EXCHANGE);
+//    }
+//
+//    @Bean
+//    public Queue couponQueue() {
+//        return new Queue(COUPON_QUEUE, true);
+//    }
+//
+//    @Bean
+//    public Binding bindingUserDeducted(Queue couponQueue, TopicExchange userExchange) {
+//        return BindingBuilder.bind(couponQueue)
+//                .to(userExchange)
+//                .with(ROUTING_KEY_DEDUCTED);
+//    }
+//
+//    @Bean
+//    public TopicExchange couponExchange() {
+//        return new TopicExchange(COUPON_EXCHANGE);
+//    }
+//
+//
+//    @Bean
+//    public DirectExchange welcomeDlx() {
+//        return new DirectExchange(dlxName);
+//    }
+//
+//    @Bean(name = "welcomeDlq")
+//    public Queue welcomeDlq() {
+//        return QueueBuilder.durable(dlqName).build();
+//    }
+//
+//    @Bean
+//    public Binding bindWelcomeDlq(Queue welcomeDlq, DirectExchange welcomeDlx) {
+//        return BindingBuilder.bind(welcomeDlq).to(welcomeDlx).with(dlqRoutingKey);
+//    }
 
 }
