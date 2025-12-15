@@ -27,6 +27,7 @@ spring:
 
     listener:
       simple:
+        acknowledge-mode: manual # 수동 ack
         default-requeue-rejected: false # 무한 재큐잉 방지
 
 rabbitmq:
@@ -35,8 +36,17 @@ rabbitmq:
   routing:
     key: team3.coupon.welcome
   queue:
-    name: team3.coupon.welcome.queue.v2  # <-- 메시지가 쌓일 실제 우편함 이름
-    coupon: team3.user.deducted.coupon.queue.dev
+    name: team3.coupon.welcome.queue.v2  # <-- 여기! 메시지가 쌓일 실제 우편함 이름입니다.
+
+  retry:
+    exchange:
+      name: team3.coupon.welcome.retry.exchange.v2
+    routing:
+      key: team3.coupon.welcome.retry.v2
+    queue:
+      name: team3.coupon.welcome.retry.queue.v2
+    delay-ms: 10000
+    max-attempts: 3
 
   dlx:
     name: team3.coupon.welcome.dlx
