@@ -14,7 +14,7 @@ public class CouponEventListener {
     private final CouponEventPublisher couponEventPublisher;
 
 
-    @RabbitListener(queues = "${rabbitmq.queue.name}")
+    @RabbitListener(queues = "${rabbitmq.queue.coupon}")
     @Transactional
     public void handleUserDeductedEvent(OrderConfirmedEvent event) {
         log.info("[Coupon API] ===== 주문 확정 이벤트 수신됨 =====");

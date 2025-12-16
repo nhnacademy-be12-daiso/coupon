@@ -3,6 +3,7 @@ package com.nhnacademy.coupon.global.saga;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -15,7 +16,8 @@ public class CouponEventPublisher {
     private final AmqpTemplate rabbitTemplate;
 
     private static final String COUPON_EXCHANGE = "team3.saga.coupon.exchange";
-    private static final String ROUTING_KEY_USED = "coupon.used";
+    @Value("${rabbitmq.routing.used}")
+    private String ROUTING_KEY_USED;
 
     // 로컬 트랜잭션이 커밋된 후에 실행됨
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

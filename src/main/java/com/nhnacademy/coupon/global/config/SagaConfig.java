@@ -10,7 +10,9 @@ public class SagaConfig {
     private static final String USER_EXCHANGE = "team3.saga.user.exchange";
     @Value("${rabbitmq.queue.coupon}")
     private String COUPON_QUEUE;
-    private static final String ROUTING_KEY_DEDUCTED = "point.deducted";
+
+    @Value("${rabbitmq.routing.deducted}")
+    private String ROUTING_KEY_DEDUCTED;
 
     private static final String COUPON_EXCHANGE = "team3.saga.coupon.exchange";
 

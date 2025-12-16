@@ -39,6 +39,8 @@ rabbitmq:
     name: team3.coupon.exchange
   routing:
     key: team3.coupon.welcome
+    deducted: point.deducted
+    used: coupon.used
   queue:
     name: team3.coupon.welcome.queue.v2  # <-- 메시지가 쌓일 실제 우편함 이름
     coupon: team3.saga.coupon.queue
