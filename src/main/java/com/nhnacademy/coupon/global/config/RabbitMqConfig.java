@@ -53,8 +53,7 @@ public class RabbitMqConfig {
     // 본 큐(v2) - Producer routingKey(team3.coupon.welcome)로 바인딩
     @Bean(name = "welcomeQueueV2")
     public Queue welcomeQueueV2() {
-        return QueueBuilder.durable(welcomeQueueName)
-                .build();
+        return QueueBuilder.durable(welcomeQueueName).build(); // durable는 브로커 재시작해도 큐가 살아있게 하려는 옵션
     }
 
     // 기존 routingKey(team3.coupon.welcome)로 v2 큐에 바인딩
@@ -119,21 +118,6 @@ public class RabbitMqConfig {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         return rabbitTemplate;
-    }
-
-    @Bean
-    public DirectExchange welcomeDlx() {
-        return new DirectExchange(dlxName);
-    }
-
-    @Bean(name = "welcomeDlq")
-    public Queue welcomeDlq() {
-        return QueueBuilder.durable(dlqName).build();
-    }
-
-    @Bean
-    public Binding bindWelcomeDlq(Queue welcomeDlq, DirectExchange welcomeDlx) {
-        return BindingBuilder.bind(welcomeDlq).to(welcomeDlx).with(dlqRoutingKey);
     }
 
 }

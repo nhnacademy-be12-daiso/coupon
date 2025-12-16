@@ -193,6 +193,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     }
 
     @Override
+    @Transactional
     public List<CategoryCouponResponse> getAvailableCouponsForBook(BookCouponQuery query) {
 
         Long userId = query.getUserId();
@@ -248,9 +249,9 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
         // 4. 필터링 + DTO 변환
         return policies.stream()
-                // 이미 가진 건 제외
+                // 이 책에서 쓸 수 있는 타입만 남기기, 이미 가진 건 제외,
                 .filter(policy -> !downloadedPolicyIds.contains(policy.getCouponPolicyId()))
-                // 이 책에서 쓸 수 있는 타입만 남기기
+                .filter(policy -> policy.getQuantity() == null || policy.getQuantity() > 0)
                 .filter(policy -> {
                     CouponType type = policy.getCouponType();
                     Long pid = policy.getCouponPolicyId();
