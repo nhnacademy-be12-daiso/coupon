@@ -14,7 +14,7 @@ public class CouponEventPublisher {
 
     private final AmqpTemplate rabbitTemplate;
 
-    private static final String COUPON_EXCHANGE = "team3.coupon.exchange";
+    private static final String COUPON_EXCHANGE = "team3.saga.coupon.exchange";
     private static final String ROUTING_KEY_USED = "coupon.used";
 
     // 로컬 트랜잭션이 커밋된 후에 실행됨
@@ -26,7 +26,7 @@ public class CouponEventPublisher {
                     ROUTING_KEY_USED,
                     event
             );
-            log.info("[User API] 재고 차감 성공 이벤트 발행 완료 : {}", ROUTING_KEY_USED);
+            log.info("[Coupon API] 쿠폰 사용 이벤트 발행 완료 : {}", ROUTING_KEY_USED);
 
         } catch(Exception e) {
             log.warn("[Coupon API] RabbitMQ 발행 실패 : {}", e.getMessage());
