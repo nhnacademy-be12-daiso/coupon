@@ -1,6 +1,8 @@
 package com.nhnacademy.coupon.global.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,5 +41,13 @@ public class SagaConfig {
     @Bean
     public DirectExchange couponExchange() {
         return new DirectExchange(COUPON_EXCHANGE);
+    }
+
+    // ----- saga용 config -----
+
+    @Bean(name = "outboxRabbitTemplate")
+    public RabbitTemplate outboxRabbitTemplate(ConnectionFactory connectionFactory) {
+        RabbitTemplate template = new RabbitTemplate(connectionFactory);
+        return template;
     }
 }
