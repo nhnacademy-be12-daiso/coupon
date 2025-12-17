@@ -28,15 +28,22 @@ spring:
       simple:
         acknowledge-mode: manual # 수동 ack
         default-requeue-rejected: false # 무한 재큐잉 방지
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000ms
+          multiplier: 2.0
 
 rabbitmq:
   exchange:
     name: team3.coupon.exchange
   routing:
     key: team3.coupon.welcome
+    deducted: point.deducted
+    used: coupon.used
   queue:
-    name: team3.coupon.welcome.queue.v2  # <-- 여기! 메시지가 쌓일 실제 우편함 이름입니다.
-    coupon: team3.coupon.saga.queue
+    name: team3.coupon.welcome.queue.v2  # <-- 메시지가 쌓일 실제 우편함 이름
+    coupon: team3.saga.coupon.queue
   retry:
     exchange:
       name: team3.coupon.welcome.retry.exchange.v2
@@ -69,12 +76,6 @@ logging:
     org.springframework.web: DEBUG
 
 management:
-  tracing:
-    sampling:
-      probability: 0.1
-  zipkin:
-    tracing:
-      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT}
   endpoints:
     web:
       exposure:
