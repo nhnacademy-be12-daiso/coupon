@@ -2,6 +2,7 @@ package com.nhnacademy.coupon.domain.coupon.entity;
 
 
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
+import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
@@ -69,7 +70,7 @@ public class CouponPolicy {
             return; // 무제한이면 차감 안 함
         }
         if (this.quantity <= 0) {
-            throw new IllegalStateException("발급 가능한 쿠폰이 없습니다.");
+            throw new InvalidCouponException("발급 가능한 쿠폰이 없습니다.");
         }
         this.quantity--;
     }

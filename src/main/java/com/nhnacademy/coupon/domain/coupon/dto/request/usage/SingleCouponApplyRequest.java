@@ -16,10 +16,6 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class SingleCouponApplyRequest {
 
-//    @NotNull(message = "사용자 ID는 필수입니다.")
-//    @Schema(description = "사용자 ID", example = "1")
-//    private Long userId;
-
     @NotNull(message = "도서 ID는 필수입니다.")
     @Schema(description = "도서 ID", example = "1")
     private Long bookId;

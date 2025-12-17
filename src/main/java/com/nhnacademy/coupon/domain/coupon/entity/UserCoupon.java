@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.domain.coupon.entity;
 
+import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.type.CouponStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,14 +54,14 @@ public class UserCoupon {
     public void use(Long orderId) {
         // 사용 가능한 상태 확인
         if (this.status != CouponStatus.ISSUED && this.status != CouponStatus.CANCELED) {
-            throw new IllegalStateException(
+            throw new InvalidCouponException(
                     "쿠폰을 사용할 수 없는 상태입니다. 현재 상태: " + this.status
             );
         }
 
         // 만료 확인
         if (LocalDateTime.now().isAfter(this.expiryAt)) { // 메서드 호출 시간보다 만료시간이 더 뒤인가?
-            throw new IllegalStateException("만료된 쿠폰입니다.");
+            throw new InvalidCouponException("만료된 쿠폰입니다.");
         }
 
         this.status = CouponStatus.USED;
@@ -84,14 +85,14 @@ public class UserCoupon {
      */
     public void cancel(Long orderId) {
         if (this.status != CouponStatus.USED) {
-            throw new IllegalStateException(
+            throw new InvalidCouponException(
                     "사용된 쿠폰만 취소할 수 있습니다. 현재 상태: " + this.status
             );
         }
 
         // 만료 확인 (만료된 쿠폰은 복구 불가)
         if (LocalDateTime.now().isAfter(this.expiryAt)) {
-            throw new IllegalStateException(
+            throw new InvalidCouponException(
                     "이미 만료된 쿠폰은 복구할 수 없습니다."
             );
         }

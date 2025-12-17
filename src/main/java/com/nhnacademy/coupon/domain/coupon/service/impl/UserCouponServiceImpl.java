@@ -14,6 +14,7 @@ import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
+import com.nhnacademy.coupon.domain.coupon.exception.UserCouponNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponBookRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponCategoryRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
@@ -111,9 +112,6 @@ public class UserCouponServiceImpl implements UserCouponService {
         return false;
     }
 
-
-
-
     // 만료된 쿠폰 개수 반환
     @Transactional
     public void expireCoupons(){
@@ -121,9 +119,13 @@ public class UserCouponServiceImpl implements UserCouponService {
         log.info("만료 처리된 쿠폰 개수: {}", count);
     }
 
-
     public BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount) {
         BigDecimal discountAmount;
+
+        if(couponPolicy.getMinOrderAmount() != null &&
+                orderAmount.compareTo(BigDecimal.valueOf(couponPolicy.getMinOrderAmount())) < 0){
+            return BigDecimal.ZERO;
+        }
 
         if(couponPolicy.getDiscountWay() == DiscountWay.FIXED){
             // 고정 할인 금액
@@ -151,11 +153,12 @@ public class UserCouponServiceImpl implements UserCouponService {
      * 실제 사용하지 않고, 팔인 금액만 계산
      */
     @Override
+    @Transactional(readOnly = true)
     public SingleCouponApplyResponse calculateSingleCoupon(Long userId, SingleCouponApplyRequest request) {
         try{
             // 1. 쿠폰 조회
             UserCoupon userCoupon = userCouponRepository.findById(request.getUserCouponId())
-                    .orElseThrow(() -> new IllegalArgumentException("쿠폰을 찾을 수 없습니다."));
+                    .orElseThrow(() -> new UserCouponNotFoundException(request.getUserCouponId()));
 
             CouponPolicy policy = userCoupon.getCouponPolicy();
 
@@ -173,7 +176,7 @@ public class UserCouponServiceImpl implements UserCouponService {
             BookCategoryResponse bookInfo = bookServiceClient.getBookCategory(request.getBookId());
             
             if(!isApplicableForBook(userCoupon, request.getBookId(), bookInfo)){
-                throw new IllegalArgumentException("이 도서(또는 카테고리)에는 적용할 수 없는 쿠폰입니다.");
+                throw new InvalidCouponException("이 도서(또는 카테고리)에는 적용할 수 없는 쿠폰입니다.");
             }
             // 6. 할인 금액 계산
             BigDecimal discountAmount = calculateDiscount(policy, itemTotal); // 최종 할인 금액
@@ -221,7 +224,7 @@ public class UserCouponServiceImpl implements UserCouponService {
                 .collect(Collectors.toSet());
 
         if (distinctCouponIds.size() != request.items().size()) {
-            throw new IllegalArgumentException("한 주문에서 동일 쿠폰을 여러 도서에 중복 적용할 수 없습니다.");
+            throw new InvalidCouponException("한 주문에서 동일 쿠폰을 여러 도서에 중복 적용할 수 없습니다.");
         }
 
         // 1) 쿠폰 일괄 조회
@@ -232,7 +235,7 @@ public class UserCouponServiceImpl implements UserCouponService {
         List<UserCoupon> coupons = userCouponRepository.findAllById(couponIds);
 
         if (coupons.size() != couponIds.size()) {
-            throw new IllegalArgumentException("존재하지 않는 쿠폰이 포함되어 있습니다.");
+            throw new UserCouponNotFoundException(null);
         }
 
         Map<Long, UserCoupon> couponMap = coupons.stream()
@@ -256,7 +259,7 @@ public class UserCouponServiceImpl implements UserCouponService {
             UserCoupon coupon = couponMap.get(item.userCouponId());
 
             if (!coupon.getUserId().equals(userId)) {
-                throw new IllegalArgumentException("본인의 쿠폰만 사용할 수 있습니다. (ID: " + coupon.getUserCouponId() + ")");
+                throw new InvalidCouponException("본인의 쿠폰만 사용할 수 있습니다. (couponId=" + coupon.getUserCouponId() + ")");
             }
 
             // 이미 같은 주문에서 USED면 멱등 처리(재시도 대비)
@@ -266,22 +269,23 @@ public class UserCouponServiceImpl implements UserCouponService {
             }
 
             if (coupon.getStatus() != CouponStatus.ISSUED) {
-                throw new IllegalArgumentException("사용할 수 없는 쿠폰입니다. (상태: " + coupon.getStatus() + ")");
+                throw new InvalidCouponException("사용할 수 없는 쿠폰입니다. (status=" + coupon.getStatus() + ")");
             }
 
             if (coupon.getExpiryAt() != null && !coupon.getExpiryAt().isAfter(now)) {
-                throw new IllegalArgumentException("만료된 쿠폰입니다. (couponId: " + coupon.getUserCouponId() + ")");
+                throw new InvalidCouponException("만료된 쿠폰입니다. (couponId=" + coupon.getUserCouponId() + ")");
             }
 
             // 여기서부터는 map에서 꺼내 쓰기 (N번 호출 제거)
             BookCategoryResponse bookInfo = bookInfoMap.get(item.bookId());
             if (bookInfo == null) {
-                throw new IllegalArgumentException("도서 정보를 찾을 수 없습니다. (bookId=" + item.bookId() + ")");
+                throw new InvalidCouponException("도서 정보를 찾을 수 없습니다. (bookId=" + item.bookId() + ")");
             }
 
             if (!isApplicableForBook(coupon, item.bookId(), bookInfo)) {
-                throw new IllegalArgumentException(
-                        "해당 도서에 적용할 수 없는 쿠폰입니다. (bookId=" + item.bookId() + ", couponId=" + coupon.getUserCouponId() + ")"
+                throw new InvalidCouponException(
+                        "해당 도서에 적용할 수 없는 쿠폰입니다. (bookId=" + item.bookId()
+                                + ", couponId=" + coupon.getUserCouponId() + ")"
                 );
             }
 
@@ -300,12 +304,12 @@ public class UserCouponServiceImpl implements UserCouponService {
 
         // 2. 개수 검증
         if(coupons.size() != couponIds.size()){
-            throw new IllegalArgumentException("존재하지 않는 쿠폰이 포함되어 있습니다.");
+            throw new UserCouponNotFoundException(null);
         }
 
         for (UserCoupon coupon : coupons) {
             if (!coupon.getUserId().equals(userId)) {
-                throw new IllegalArgumentException("본인의 쿠폰만 취소할 수 있습니다.");
+                throw new InvalidCouponException("본인의 쿠폰만 취소할 수 있습니다.");
             }
             // 멱등 처리: 이미 취소(ISSUED) 상태면 성공으로 간주
             if (coupon.getStatus() == CouponStatus.ISSUED) {
@@ -315,30 +319,30 @@ public class UserCouponServiceImpl implements UserCouponService {
             coupon.cancel(request.getOrderId()); // 주문ID 검증 포함
         }
     }
-
     @Override
+    @Transactional
     public UserCouponResponse downloadCoupon(Long userId, Long couponPolicyId) {
         LocalDateTime now = LocalDateTime.now();
 
         // 1. 정책 조회 + 상태/기간 체크
         CouponPolicy policy = couponPolicyRepository.findById(couponPolicyId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰 정책입니다."));
+                .orElseThrow(() -> new CouponPolicyNotFoundException("존재하지 않는 쿠폰 정책입니다."));
 
         if (policy.getCouponPolicyStatus() != CouponPolicyStatus.ACTIVE) {
-            throw new IllegalStateException("발급 불가능한 쿠폰입니다.");
+            throw new InvalidCouponException("발급 불가능한 쿠폰입니다.");
         }
         if (policy.getValidStartDate() != null && policy.getValidStartDate().isAfter(now)) {
-            throw new IllegalStateException("아직 발급 기간이 아닙니다.");
+            throw new InvalidCouponException("아직 발급 기간이 아닙니다.");
         }
         if (policy.getValidEndDate() != null && policy.getValidEndDate().isBefore(now)) {
-            throw new IllegalStateException("발급 기간이 지났습니다.");
+            throw new InvalidCouponException("발급 기간이 지났습니다.");
         }
 
         // 2. 이미 발급된 쿠폰인지 체크 (1인 1장 기준)
         if (userCouponRepository.existsByUserIdAndCouponPolicy_CouponPolicyId(userId, couponPolicyId)) {
             // 이미 있다면 그냥 그걸 반환하거나, 예외를 던지거나 선택
             // 여기서는 예외로 처리
-            throw new IllegalStateException("이미 다운로드한 쿠폰입니다.");
+            throw new InvalidCouponException("이미 다운로드한 쿠폰입니다.");
         }
 
         // 3. 정책 수량 차감
@@ -455,7 +459,7 @@ public class UserCouponServiceImpl implements UserCouponService {
      */
     private void validateCouponOwnership(UserCoupon userCoupon, Long userId) {
         if (!userCoupon.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 쿠폰이 아닙니다.");
+            throw new InvalidCouponException("본인의 쿠폰이 아닙니다.");
         }
     }
 
@@ -464,7 +468,7 @@ public class UserCouponServiceImpl implements UserCouponService {
      */
     private void validateCouponStatus(UserCoupon userCoupon) {
         if (!userCoupon.isAvailable()) {
-            throw new IllegalArgumentException(
+            throw new InvalidCouponException(
                     "사용할 수 없는 쿠폰입니다. (상태: " + userCoupon.getStatus() + ")");
         }
     }
@@ -475,7 +479,7 @@ public class UserCouponServiceImpl implements UserCouponService {
     private void validateMinOrderAmount(CouponPolicy policy, BigDecimal itemTotal) {
         if (policy.getMinOrderAmount() != null &&
                 itemTotal.compareTo(BigDecimal.valueOf(policy.getMinOrderAmount())) < 0) {
-            throw new IllegalArgumentException(
+            throw new InvalidCouponException(
                     "최소 주문 금액 미달입니다. (필요: " +
                             policy.getMinOrderAmount() + "원)");
         }
