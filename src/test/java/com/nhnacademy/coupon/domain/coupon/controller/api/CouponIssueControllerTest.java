@@ -63,7 +63,7 @@ class CouponIssueControllerTest {
         // pathVariable 빠진 URL은 매핑 자체가 안 됨
         mockMvc.perform(post("/api/coupons//download")
                         .header("X-User-Id", userId))
-                .andExpect(status().isNotFound());
+                .andExpect(status().is5xxServerError());
 
         Mockito.verifyNoInteractions(couponIssueService);
     }

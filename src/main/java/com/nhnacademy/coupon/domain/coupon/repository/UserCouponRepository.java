@@ -37,4 +37,6 @@ public interface UserCouponRepository extends JpaRepository<UserCoupon, Long> {
             "WHERE uc.status = 'ISSUED' AND uc.expiryAt < :now")
     int bulkExpireCoupons(@Param("now") LocalDateTime now);
 
+    boolean existsByUserIdAndCouponPolicy_CouponPolicyIdAndIssuedAtBetween(Long userId, Long policyId, LocalDateTime yearStart, LocalDateTime yearEnd);
+
 }

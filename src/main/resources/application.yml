@@ -61,6 +61,24 @@ rabbitmq:
   dlq-routing:
     key: team3.coupon.welcome.dlq
 
+  # 생일 쿠폰 큐
+  birthday:
+    exchange: team3.coupon.birthday.exchange
+    routing-key: team3.coupon.birthday
+    queue: team3.coupon.birthday.queue
+
+    # 재시도 설정
+    retry:
+      exchange: team3.coupon.birthday.retry.exchange
+      routing-key: team3.coupon.birthday.retry
+      queue: team3.coupon.birthday.retry.queue
+      delay-ms: 10000  # 10초 지연
+
+    # DLQ 설정
+    dlx: team3.coupon.birthday.dlx
+    dlq: team3.coupon.birthday.dlq
+    dlq-routing-key: team3.coupon.birthday.dlq
+
 eureka:
   instance:
     prefer-ip-address: true
