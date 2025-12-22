@@ -44,7 +44,7 @@ public class CouponEventListener {
         try {
             // TODO 포인트 차감 로직
 
-            CouponDeduplicationLog logEntry = new CouponDeduplicationLog(msgId);
+            CouponDeduplicationLog logEntry = new CouponDeduplicationLog(msgId.toString());
             couponDeduplicationRepository.save(logEntry);
 
             try {

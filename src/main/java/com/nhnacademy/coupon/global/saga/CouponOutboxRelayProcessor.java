@@ -29,6 +29,7 @@ public class CouponOutboxRelayProcessor {
                     outbox.getRoutingKey(),
                     outbox.getPayload()
             );
+            log.info("[Coupon API] Order ID : {}", outbox.getAggregateId());
             outbox.markAsPublished();
             couponOutboxRepository.save(outbox);
 
