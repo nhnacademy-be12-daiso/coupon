@@ -19,13 +19,13 @@ public class CouponDeduplicationLog {
 
     @Id
     @Column(name = "message_id", length = 128) // RabbitMQ 메시지 ID 또는 이벤트 ID를 가정
-    private Long messageId;
+    private String messageId;
 
     @CreatedDate
     @Column(name = "received_at", nullable = false, updatable = false)
     private LocalDateTime receivedAt;
 
-    public CouponDeduplicationLog(Long messageId) {
+    public CouponDeduplicationLog(String messageId) {
         this.messageId = messageId;
         this.receivedAt = LocalDateTime.now(); // @CreatedDate가 아닌 경우 수동으로 설정
     }
