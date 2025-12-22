@@ -28,12 +28,12 @@ public class UserCouponJdbcRepository {
             LocalDateTime issuedAt, // 발급 시각
             LocalDateTime expiryAt){ // 만료 시각
         String sql = """
-            INSERT INTO user_coupons
+            INSERT IGNORE INTO user_coupons
               (user_created_id, coupon_policy_id, status, issue_at, expiry_at)
             VALUES (?, ?, ?, ?, ?)
             
             """;
-
+        // INSERT IGNORE 이미 발급된 쿠폰은 insert를 무시함
         int batchSize = 100;
 
         List<int []> results = new ArrayList<>();
