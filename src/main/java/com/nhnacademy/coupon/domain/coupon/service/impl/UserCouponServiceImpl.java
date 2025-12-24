@@ -89,9 +89,9 @@ public class UserCouponServiceImpl implements UserCouponService {
         List<Long> categoryIds = extractCategoryIds(bookInfo);
 
         // 카테고리 정보가 전혀 없으면 CATEGORY/BOOKS 적용 불가
-        if (categoryIds.isEmpty() && (type == CouponType.CATEGORY || type == CouponType.BOOKS)) {
-            return false;
-        }
+//        if (categoryIds.isEmpty() && (type == CouponType.CATEGORY || type == CouponType.BOOKS)) {
+//            return false;
+//        }
 
         // 3. 카테고리 쿠폰: 이 정책이 책의 카테고리 중 하나에 매핑되어 있으면 OK
         if (type == CouponType.CATEGORY) {
