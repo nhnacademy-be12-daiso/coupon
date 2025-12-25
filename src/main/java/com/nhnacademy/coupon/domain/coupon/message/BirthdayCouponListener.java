@@ -56,7 +56,7 @@ public class BirthdayCouponListener {
                     event.batchId(), event.userIds().size());
 
         } catch (Exception e) {
-            log.error("[Coupon] bulk issue failed: batchId={}, size={}, retry={}, error={}",
+            log.error("[Coupon] bulk 발급 실패 : batchId={}, size={}, retry={}, error={}",
                     event.batchId(), event.userIds().size(), retryCount, e.getMessage());
 
             int nextRetry = retryCount + 1;
