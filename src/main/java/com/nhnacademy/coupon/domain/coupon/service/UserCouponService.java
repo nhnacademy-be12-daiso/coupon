@@ -27,8 +27,10 @@ public interface UserCouponService {
 
     SingleCouponApplyResponse calculateSingleCoupon(Long userId, @Valid SingleCouponApplyRequest request);
 
+    // 쿠폰 사용 처리
     void useCoupons(Long userId, @Valid BatchCouponUseRequest request);
 
+    // 쿠폰 취소 보상 처리
     void cancelCouponUsage(Long userId, @Valid CouponCancelRequest request);
 
     UserCouponResponse downloadCoupon(Long userId, Long couponPolicyId);

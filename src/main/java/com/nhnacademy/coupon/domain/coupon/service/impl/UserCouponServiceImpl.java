@@ -2,17 +2,17 @@ package com.nhnacademy.coupon.domain.coupon.service.impl;
 
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.BatchCouponUseRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponCancelRequest;
-import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponUseItemRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponUseRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategorySimpleResponse;
-import com.nhnacademy.coupon.domain.coupon.dto.response.usage.CouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponUpdateFailedException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.exception.UserCouponNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponBookRepository;
@@ -174,7 +174,7 @@ public class UserCouponServiceImpl implements UserCouponService {
 
             // 5. 카테고리/도서 쿠폰 검증
             BookCategoryResponse bookInfo = bookServiceClient.getBookCategory(request.getBookId());
-            
+
             if(!isApplicableForBook(userCoupon, request.getBookId(), bookInfo)){
                 throw new InvalidCouponException("이 도서(또는 카테고리)에는 적용할 수 없는 쿠폰입니다.");
             }
@@ -219,105 +219,104 @@ public class UserCouponServiceImpl implements UserCouponService {
     @Transactional
     public void useCoupons(Long userId, BatchCouponUseRequest request) {
 
-        Set<Long> distinctCouponIds = request.items().stream()
-                .map(CouponUseItemRequest::userCouponId)
-                .collect(Collectors.toSet());
+        try {
+            List<CouponUseRequest> reqCoupons = request.coupons();
 
-        if (distinctCouponIds.size() != request.items().size()) {
-            throw new InvalidCouponException("한 주문에서 동일 쿠폰을 여러 도서에 중복 적용할 수 없습니다.");
-        }
-
-        // 1) 쿠폰 일괄 조회
-        List<Long> couponIds = request.items().stream()
-                .map(CouponUseItemRequest::userCouponId)
-                .toList();
-
-        List<UserCoupon> coupons = userCouponRepository.findAllById(couponIds);
-
-        if (coupons.size() != couponIds.size()) {
-            throw new UserCouponNotFoundException(null);
-        }
-
-        Map<Long, UserCoupon> couponMap = coupons.stream()
-                .collect(Collectors.toMap(UserCoupon::getUserCouponId, c -> c));
-
-        LocalDateTime now = LocalDateTime.now();
-
-        // 1. bookId 중복 제거
-        Set<Long> bookIds = request.items().stream()
-                .map(CouponUseItemRequest::bookId)
-                .collect(Collectors.toSet());
-
-        // 2. bookId별로 딱 1번만 호출해서 캐시
-        Map<Long, BookCategoryResponse> bookInfoMap = new HashMap<>();
-        for (Long bookId : bookIds) {
-            bookInfoMap.put(bookId, bookServiceClient.getBookCategory(bookId));
-        }
-
-        // 2) 도서별 검증 후 사용처리
-        for (CouponUseItemRequest item : request.items()) {
-            UserCoupon coupon = couponMap.get(item.userCouponId());
-
-            if (!coupon.getUserId().equals(userId)) {
-                throw new InvalidCouponException("본인의 쿠폰만 사용할 수 있습니다. (couponId=" + coupon.getUserCouponId() + ")");
+            // 쿠폰 미사용 주문: 정상 처리
+            if (reqCoupons == null || reqCoupons.isEmpty()) {
+                return;
             }
 
-            // 이미 같은 주문에서 USED면 멱등 처리(재시도 대비)
-            if (coupon.getStatus() == CouponStatus.USED
-                    && Objects.equals(coupon.getUsedOrderId(), request.orderId())) {
-                continue;
+            // 0) 한 주문에서 동일 쿠폰 중복 사용 방지
+            Set<Long> distinctCouponIds = reqCoupons.stream()
+                    .map(CouponUseRequest::userCouponId)
+                    .collect(Collectors.toSet());
+
+            if (distinctCouponIds.size() != reqCoupons.size()) {
+                throw new InvalidCouponException("한 주문에서 동일 쿠폰을 여러 번 사용할 수 없습니다.");
             }
 
-            if (coupon.getStatus() != CouponStatus.ISSUED) {
-                throw new InvalidCouponException("사용할 수 없는 쿠폰입니다. (status=" + coupon.getStatus() + ")");
+            // 1) 쿠폰 일괄 조회
+            List<Long> couponIds = reqCoupons.stream()
+                    .map(CouponUseRequest::userCouponId)
+                    .toList();
+
+            List<UserCoupon> coupons = userCouponRepository.findAllById(couponIds);
+
+            if (coupons.size() != couponIds.size()) {
+                throw new UserCouponNotFoundException(null);
             }
 
-            if (coupon.getExpiryAt() != null && !coupon.getExpiryAt().isAfter(now)) {
-                throw new InvalidCouponException("만료된 쿠폰입니다. (couponId=" + coupon.getUserCouponId() + ")");
+            Map<Long, UserCoupon> couponMap = coupons.stream()
+                    .collect(Collectors.toMap(UserCoupon::getUserCouponId, c -> c));
+
+            LocalDateTime now = LocalDateTime.now();
+
+            // 2) 검증 후 사용 처리
+            for (Long couponId : couponIds) {
+                UserCoupon coupon = couponMap.get(couponId);
+                // (A) 소유자 검증
+                if (!coupon.getUserId().equals(userId)) {
+                    throw new InvalidCouponException("본인의 쿠폰만 사용할 수 있습니다. (couponId=" + coupon.getUserCouponId() + ")");
+                }
+                // (B) 멱등 처리 (사가 재시도 대비)
+                if (coupon.getStatus() == CouponStatus.USED
+                        && Objects.equals(coupon.getUsedOrderId(), request.orderId())) {
+                    continue;
+                }
+                // (C) 상태 검증
+                if (coupon.getStatus() != CouponStatus.ISSUED) {
+                    throw new InvalidCouponException("사용할 수 없는 쿠폰입니다. (status=" + coupon.getStatus() + ")");
+                }
+                // (D) 만료 검증
+                if (coupon.getExpiryAt() != null && !coupon.getExpiryAt().isAfter(now)) {
+                    throw new InvalidCouponException("만료된 쿠폰입니다. (couponId=" + coupon.getUserCouponId() + ")");
+                }
+                // (E) 사용 처리
+                coupon.use(request.orderId());
             }
 
-            // 여기서부터는 map에서 꺼내 쓰기 (N번 호출 제거)
-            BookCategoryResponse bookInfo = bookInfoMap.get(item.bookId());
-            if (bookInfo == null) {
-                throw new InvalidCouponException("도서 정보를 찾을 수 없습니다. (bookId=" + item.bookId() + ")");
-            }
-
-            if (!isApplicableForBook(coupon, item.bookId(), bookInfo)) {
-                throw new InvalidCouponException(
-                        "해당 도서에 적용할 수 없는 쿠폰입니다. (bookId=" + item.bookId()
-                                + ", couponId=" + coupon.getUserCouponId() + ")"
-                );
-            }
-
-            coupon.use(request.orderId());
-        }
+        } catch (InvalidCouponException | UserCouponNotFoundException e) {
+            throw new CouponUpdateFailedException(e.getMessage(), e);
     }
+
+
+}
 
 
     @Override
     @Transactional
     public void cancelCouponUsage(Long userId, CouponCancelRequest request) {
-        List<Long> couponIds = request.getUserCouponIds();
+        try {
+            List<Long> couponIds = request.getUserCouponIds();
 
-        // 1. 쿠폰 조회
-        List<UserCoupon> coupons = userCouponRepository.findAllById(couponIds);
-
-        // 2. 개수 검증
-        if(coupons.size() != couponIds.size()){
-            throw new UserCouponNotFoundException(null);
-        }
-
-        for (UserCoupon coupon : coupons) {
-            if (!coupon.getUserId().equals(userId)) {
-                throw new InvalidCouponException("본인의 쿠폰만 취소할 수 있습니다.");
-            }
-            // 멱등 처리: 이미 취소(ISSUED) 상태면 성공으로 간주
-            if (coupon.getStatus() == CouponStatus.ISSUED) {
-                continue;
+            if(couponIds == null || couponIds.isEmpty()){
+                return; // 보상에서 쿠폰 없으면 정상
             }
 
-            coupon.cancel(request.getOrderId()); // 주문ID 검증 포함
+            // 1. 쿠폰 조회
+            List<UserCoupon> coupons = userCouponRepository.findAllById(couponIds);
+
+            // 2. 개수 검증
+            if(coupons.size() != couponIds.size()){
+                throw new UserCouponNotFoundException(null);
+            }
+
+            for (UserCoupon coupon : coupons) {
+                if (!coupon.getUserId().equals(userId)) {
+                    throw new InvalidCouponException("본인의 쿠폰만 취소할 수 있습니다.");
+                }
+                // 멱등 처리: 이미 취소(ISSUED) 상태면 성공으로 간주
+                if (coupon.getStatus() == CouponStatus.ISSUED) {
+                    continue;
+                }
+
+                coupon.cancel(request.getOrderId()); // 주문ID 검증 포함
+            }
+        } catch (InvalidCouponException | UserCouponNotFoundException e) {
+            throw new CouponUpdateFailedException(e.getMessage(), e);
         }
+
     }
     @Override
     @Transactional

@@ -32,7 +32,7 @@ public class SagaListener {
         deduplicationRepository.save(new CouponDeduplicationLog(event.getOrderId().toString()));
 
         // 실제 작업은 핸들러가
-        sagaHandler.handleEvent(event);
+        sagaHandler. handleEvent(event);
     }
 
     // 보상 로직

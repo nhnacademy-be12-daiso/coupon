@@ -109,7 +109,4 @@ public class UserCoupon {
         return (this.status == CouponStatus.ISSUED || this.status == CouponStatus.CANCELED)
                 && LocalDateTime.now().isBefore(this.expiryAt);
     }
-
-
-
 }

@@ -20,7 +20,7 @@ public class OrderConfirmedEvent implements SagaEvent {
     private Long outboxId;
 
     // 여기 있는건 이미 다 검증이 됐음을 전제로 한다
-    private Map<Long, Integer> bookList;
+    private Map<Long, Integer> bookList; // bookId, quantity
     private Long totalAmount;
     private Long usedPoint; // 사용 포인트
     private Long savedPoint; // 적립 포인트

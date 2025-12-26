@@ -2,6 +2,7 @@ package com.nhnacademy.coupon.domain.coupon.dto.request.usage;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "쿠폰 사용 취소 요청 (주문 취소/환불)")
 public class CouponCancelRequest {
 
