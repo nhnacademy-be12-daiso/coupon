@@ -24,6 +24,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CategoryCouponController.class)
 class CategoryCouponControllerTest {
 
+    @MockitoBean(name = "jpaAuditingHandler")
+    Object jpaAuditingHandler;
+
+    @MockitoBean(name = "jpaMappingContext")
+    Object jpaMappingContext;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -100,5 +106,48 @@ class CategoryCouponControllerTest {
         BookCouponQuery passed = captor.getValue();
         assertThat(passed.getPrimaryCategoryId()).isNull();
         assertThat(passed.getSecondaryCategoryId()).isNull();
+    }
+
+    @Test
+    @DisplayName("GET /api/coupons/books/{bookId}/downloadable - 도서 서비스 예외 발생 시 500")
+    void getDownloadableCoupons_bookServiceException_returns500() throws Exception {
+        long bookId = 200L;
+        long userId = 100L;
+
+        // book 서비스에서 예외 발생
+        Mockito.when(bookServiceClient.getBookCategory(bookId))
+                .thenThrow(new RuntimeException("book service down"));
+
+        mockMvc.perform(get("/api/coupons/books/{bookId}/downloadable", bookId)
+                        .header("X-User-Id", userId))
+                .andExpect(status().isInternalServerError());
+
+        // bookService는 호출됨
+        Mockito.verify(bookServiceClient).getBookCategory(bookId);
+        // couponPolicyService는 호출되면 안 됨
+        Mockito.verifyNoInteractions(couponPolicyService);
+    }
+
+    @Test
+    @DisplayName("GET /api/coupons/books/{bookId}/downloadable - 쿠폰 서비스 예외 발생 시 500")
+    void getDownloadableCoupons_couponServiceException_returns500() throws Exception {
+        long bookId = 200L;
+        long userId = 100L;
+
+        // book 서비스는 정상
+        Mockito.when(bookServiceClient.getBookCategory(bookId))
+                .thenReturn(new BookCategoryResponse(bookId, 10L, 20L));
+
+        // couponPolicyService에서 예외 발생
+        Mockito.when(couponPolicyService.getAvailableCouponsForBook(any(BookCouponQuery.class)))
+                .thenThrow(new RuntimeException("coupon service error"));
+
+        mockMvc.perform(get("/api/coupons/books/{bookId}/downloadable", bookId)
+                        .header("X-User-Id", userId))
+                .andExpect(status().isInternalServerError());
+
+        Mockito.verify(bookServiceClient).getBookCategory(bookId);
+        Mockito.verify(couponPolicyService)
+                .getAvailableCouponsForBook(any(BookCouponQuery.class));
     }
 }

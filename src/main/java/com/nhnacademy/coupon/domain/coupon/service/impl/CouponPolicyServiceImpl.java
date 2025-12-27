@@ -284,48 +284,6 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .toList();
     }
 
-    @Override
-    @Transactional
-    public UserCouponResponse issueBirthdayCoupon(Long userId) {
-        log.info("[Coupon] 생일 쿠폰 발급 시작: userId={}", userId);
-
-        // 1. BIRTHDAY 정책 조회
-        List<CouponPolicy> birthdayPolicies = couponPolicyRepository.findByCouponType(CouponType.BIRTHDAY);
-
-        if(birthdayPolicies.isEmpty()){
-            throw new CouponPolicyNotFoundException("생일 쿠폰 정책이 없습니다.");
-        }
-
-        CouponPolicy policy = birthdayPolicies.stream()
-                .filter(p -> p.getCouponPolicyStatus() == CouponPolicyStatus.ACTIVE)
-                .findFirst()
-                .orElseThrow(() -> new InvalidCouponException("활성화된 생일 쿠폰 정책이 없습니다."));
-
-        // 2. 올해 이미 받았는지 체크
-        if(checkBirthdayCouponIssuedThisYear(userId, policy.getCouponPolicyId())){
-            throw new DuplicateCouponException("올해 이미 생일 쿠폰을 받았습니다.");
-        }
-
-        // 3. 쿠폰 발급 (DB 저장)
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiryAt = calculateExpiryDate(policy, now);
-
-        UserCoupon userCoupon = UserCoupon.builder()
-                .userId(userId)
-                .couponPolicy(policy)
-                .status(CouponStatus.ISSUED)
-                .issuedAt(now)
-                .expiryAt(expiryAt)
-                .build();
-
-        UserCoupon saved = userCouponRepository.save(userCoupon);
-
-        log.info("[Coupon] 생일 쿠폰 발급 완료: userId={}, couponId={}",
-                userId, saved.getUserCouponId());
-
-        return convertToUserCouponResponse(saved);
-    }
-
     @Transactional
     public long issueBirthdayCouponsBulk(List<Long> userIds) {
         // 1) 활성 BIRTHDAY 정책 1개 조회 (기존 로직 재사용 느낌)
@@ -372,20 +330,6 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
 
         // 기본값: 1년
         return issueTime.plusYears(1);
-    }
-
-    /**
-     * 올해 생일 쿠폰 발급 여부 확인
-     */
-    private boolean checkBirthdayCouponIssuedThisYear(Long userId, Long policyId) {
-        LocalDateTime yearStart = LocalDateTime.now()
-                .withDayOfYear(1)
-                .withHour(0).withMinute(0).withSecond(0);
-
-        LocalDateTime yearEnd = yearStart.plusYears(1);
-
-        return userCouponRepository.existsByUserIdAndCouponPolicy_CouponPolicyIdAndIssuedAtBetween(
-                        userId, policyId, yearStart, yearEnd);
     }
 
     // ========== Conversion Methods ==========

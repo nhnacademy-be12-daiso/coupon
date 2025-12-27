@@ -6,7 +6,4 @@ public class InvalidCouponException extends RuntimeException {
         super(message);
     }
 
-    public InvalidCouponException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

@@ -19,6 +19,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CouponIssueController.class)
 class CouponIssueControllerTest {
 
+    @MockitoBean(name = "jpaAuditingHandler")
+    Object jpaAuditingHandler;
+
+    @MockitoBean(name = "jpaMappingContext")
+    Object jpaMappingContext;
+
     @Autowired
     private MockMvc mockMvc;
 

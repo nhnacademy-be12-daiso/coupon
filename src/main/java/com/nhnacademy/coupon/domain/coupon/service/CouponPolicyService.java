@@ -30,8 +30,6 @@ public interface CouponPolicyService {
 
     List<CategoryCouponResponse> getAvailableCouponsForBook(BookCouponQuery query);
 
-    UserCouponResponse issueBirthdayCoupon(Long userId);
-
     long issueBirthdayCouponsBulk(List<Long> userIds);
 
 }

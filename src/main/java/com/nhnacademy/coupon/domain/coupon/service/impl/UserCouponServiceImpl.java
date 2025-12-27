@@ -121,14 +121,13 @@ public class UserCouponServiceImpl implements UserCouponService {
 
     public BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount) {
         BigDecimal discountAmount;
-
+        // 1. 최소 주문 금액 체크
         if(couponPolicy.getMinOrderAmount() != null &&
                 orderAmount.compareTo(BigDecimal.valueOf(couponPolicy.getMinOrderAmount())) < 0){
             return BigDecimal.ZERO;
         }
-
+        // 2. 할인 계산
         if(couponPolicy.getDiscountWay() == DiscountWay.FIXED){
-            // 고정 할인 금액
             discountAmount = couponPolicy.getDiscountAmount();
         } else {
             // 퍼센트 할인
@@ -137,7 +136,7 @@ public class UserCouponServiceImpl implements UserCouponService {
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         }
 
-        // 최대 할인 금액 제한
+        // 3. 최대 할인 금액 제한
         if(couponPolicy.getMaxDiscountAmount() != null){
             BigDecimal maxDiscount = BigDecimal.valueOf(couponPolicy.getMaxDiscountAmount());
             if(discountAmount.compareTo(maxDiscount) > 0){ // 할인 금액이 최대 할인 금액보다 크면 최대 할인 금액으로 할인 금액 Fix!

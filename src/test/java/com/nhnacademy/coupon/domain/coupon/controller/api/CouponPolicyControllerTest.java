@@ -1,6 +1,5 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyCreateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdateRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
@@ -24,8 +23,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CouponPolicyController.class)
 class CouponPolicyControllerTest {
 
+    @MockitoBean(name = "jpaAuditingHandler")
+    Object jpaAuditingHandler;
+
+    @MockitoBean(name = "jpaMappingContext")
+    Object jpaMappingContext;
+
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private CouponPolicyService couponPolicyService;
 

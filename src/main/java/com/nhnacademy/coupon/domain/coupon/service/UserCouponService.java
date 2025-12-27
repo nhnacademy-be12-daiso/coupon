@@ -19,9 +19,6 @@ public interface UserCouponService {
     // 사용 가능한 쿠폰 조회
     List<UserCouponResponse> getAvailableCoupons(Long userId, Long bookId);
 
-    // 만료 처리된 쿠폰 개수 조회
-    void expireCoupons();
-
     // 쿠폰 할인 계산
     BigDecimal calculateDiscount(CouponPolicy couponPolicy, BigDecimal orderAmount);
 

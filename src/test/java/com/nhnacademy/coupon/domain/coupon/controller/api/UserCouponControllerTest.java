@@ -1,6 +1,5 @@
 package com.nhnacademy.coupon.domain.coupon.controller.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.BatchCouponUseRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponCancelRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
@@ -26,10 +25,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(UserCouponController.class)
 class UserCouponControllerTest {
 
+    @MockitoBean(name = "jpaAuditingHandler")
+    Object jpaAuditingHandler;
+
+    @MockitoBean(name = "jpaMappingContext")
+    Object jpaMappingContext;
+
     @Autowired
     MockMvc mockMvc;
-    @Autowired
-    ObjectMapper objectMapper;
 
     @MockitoBean
     UserCouponService userCouponService;
