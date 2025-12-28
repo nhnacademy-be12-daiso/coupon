@@ -6,6 +6,7 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
+@Schema(description = "단일 쿠폰 적용 결과 응답 DTO")
 public record SingleCouponApplyResponse(
         @Schema(description = "도서 ID")
         Long bookId,

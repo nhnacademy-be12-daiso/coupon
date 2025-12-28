@@ -5,6 +5,7 @@ import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryRespons
 import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.service.CouponPolicyService;
 import com.nhnacademy.coupon.global.client.BookServiceClient;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ public class CategoryCouponController {
     private final BookServiceClient bookServiceClient;
     private final CouponPolicyService couponPolicyService;
 
+    @Operation(summary = "도서 다운로드 가능 쿠폰 조회", description = "사용자/도서/카테고리 기준으로 다운로드 가능한 쿠폰 목록을 반환합니다.")
     @GetMapping("/{bookId}/downloadable")
     public ResponseEntity<List<CategoryCouponResponse>> getDownloadableCoupons(
             @PathVariable long bookId,

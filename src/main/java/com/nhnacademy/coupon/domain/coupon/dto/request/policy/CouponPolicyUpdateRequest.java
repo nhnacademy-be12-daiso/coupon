@@ -3,6 +3,7 @@ package com.nhnacademy.coupon.domain.coupon.dto.request.policy;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Schema(description = "쿠폰 정책 수정 요청 DTO")
 @Getter
 @Builder
 public class CouponPolicyUpdateRequest {
