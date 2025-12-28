@@ -1,13 +1,17 @@
 package com.nhnacademy.coupon.domain.coupon.service;
 
+import com.nhnacademy.coupon.domain.coupon.dto.request.usage.CouponCancelRequest;
+import com.nhnacademy.coupon.domain.coupon.dto.request.usage.SingleCouponApplyRequest;
 import com.nhnacademy.coupon.domain.coupon.dto.response.book.BookCategoryResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategorySimpleResponse;
+import com.nhnacademy.coupon.domain.coupon.dto.response.usage.SingleCouponApplyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponCategory;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.entity.UserCoupon;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponUpdateFailedException;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponBookRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.CouponCategoryRepository;
-import com.nhnacademy.coupon.domain.coupon.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon.domain.coupon.repository.UserCouponRepository;
 import com.nhnacademy.coupon.domain.coupon.service.impl.UserCouponServiceImpl;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
@@ -20,24 +24,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserCouponServiceTest {
 
     @Mock
     private UserCouponRepository userCouponRepository;
-
-    @Mock
-    private CouponPolicyRepository couponPolicyRepository;
 
     @Mock
     private CouponBookRepository couponBookRepository;
@@ -172,9 +175,9 @@ class UserCouponServiceTest {
 
         assertThat(res).hasSize(2);
 
-        Mockito.verifyNoInteractions(bookServiceClient);
-        Mockito.verifyNoInteractions(couponBookRepository);
-        Mockito.verifyNoInteractions(couponCategoryRepository);
+        verifyNoInteractions(bookServiceClient);
+        verifyNoInteractions(couponBookRepository);
+        verifyNoInteractions(couponCategoryRepository);
     }
 
 
@@ -262,6 +265,155 @@ class UserCouponServiceTest {
 
         assertThat(res).hasSize(1); // welcome만 남아야 함
         assertThat(res.get(0).getCouponPolicy().couponType()).isEqualTo(CouponType.WELCOME);
+    }
+
+    @Test
+    @DisplayName("getUserCoupons - CATEGORY 쿠폰의 itemName이 정상 매핑됨")
+    void getUserCoupons_withCategories_mapsItemName() {
+        Long userId = 1L;
+
+        CouponPolicy policy = mock(CouponPolicy.class);
+        when(policy.getCouponPolicyId()).thenReturn(1L);
+        when(policy.getCouponType()).thenReturn(CouponType.CATEGORY);
+
+        UserCoupon coupon = mock(UserCoupon.class);
+        when(coupon.getCouponPolicy()).thenReturn(policy);
+        when(coupon.getUserCouponId()).thenReturn(1L);
+
+        when(userCouponRepository.findByUserId(userId))
+                .thenReturn(List.of(coupon));
+
+        CouponCategory mapping = new CouponCategory(null, policy, 10L);
+        when(couponCategoryRepository.findByCouponPolicy_CouponPolicyIdIn(List.of(1L)))
+                .thenReturn(List.of(mapping));
+
+        when(bookServiceClient.getCategoriesByIds(List.of(10L)))
+                .thenReturn(List.of(new CategorySimpleResponse(10L, "소설")));
+
+        List<UserCouponResponse> result = userCouponService.getUserCoupons(userId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getItemName()).isEqualTo("소설");
+    }
+
+    @Test
+    @DisplayName("cancelCouponUsage - coupons null/empty면 return")
+    void cancelCouponUsage_empty_returns() {
+        CouponCancelRequest req1 = new CouponCancelRequest(100L, "test", null);
+        CouponCancelRequest req2 = new CouponCancelRequest(100L, "test", List.of());
+
+        assertThatCode(() -> {
+            userCouponService.cancelCouponUsage(1L, req1);
+            userCouponService.cancelCouponUsage(1L, req2);
+        }).doesNotThrowAnyException();
+
+        verifyNoInteractions(userCouponRepository);
+    }
+
+    @Test
+    @DisplayName("cancelCouponUsage - 일부 쿠폰 조회 실패시 예외")
+    void cancelCouponUsage_notFoundSome_throws() {
+        CouponCancelRequest req = new CouponCancelRequest(100L, "test", List.of(1L, 2L));
+
+        when(userCouponRepository.findAllById(List.of(1L, 2L)))
+                .thenReturn(List.of(mock(UserCoupon.class))); // 1개만 반환
+
+        assertThatThrownBy(() -> userCouponService.cancelCouponUsage(1L, req))
+                .isInstanceOf(CouponUpdateFailedException.class);
+    }
+
+    @Test
+    @DisplayName("cancelCouponUsage - 소유자 불일치 예외")
+    void cancelCouponUsage_notOwner_throws() {
+        CouponCancelRequest req = new CouponCancelRequest(100L, "test", List.of(1L));
+
+        UserCoupon coupon = mock(UserCoupon.class);
+        when(coupon.getUserId()).thenReturn(999L); // 다른 유저
+
+        when(userCouponRepository.findAllById(List.of(1L)))
+                .thenReturn(List.of(coupon));
+
+        assertThatThrownBy(() -> userCouponService.cancelCouponUsage(1L, req))
+                .isInstanceOf(CouponUpdateFailedException.class)
+                .hasMessageContaining("본인의 쿠폰");
+    }
+
+    @Test
+    @DisplayName("cancelCouponUsage - 멱등: 이미 ISSUED면 continue")
+    void cancelCouponUsage_idempotent_alreadyIssued() {
+        CouponCancelRequest req = new CouponCancelRequest(100L, "test", List.of(1L));
+
+        UserCoupon coupon = mock(UserCoupon.class);
+        when(coupon.getUserId()).thenReturn(1L);
+        when(coupon.getStatus()).thenReturn(CouponStatus.ISSUED);
+
+        when(userCouponRepository.findAllById(List.of(1L)))
+                .thenReturn(List.of(coupon));
+
+        assertThatCode(() -> userCouponService.cancelCouponUsage(1L, req))
+                .doesNotThrowAnyException();
+
+        verify(coupon, never()).cancel(anyLong());
+    }
+
+    @Test
+    @DisplayName("cancelCouponUsage - 정상 취소")
+    void cancelCouponUsage_success() {
+        CouponCancelRequest req = new CouponCancelRequest(100L, "test", List.of(1L));
+
+        UserCoupon coupon = mock(UserCoupon.class);
+        when(coupon.getUserId()).thenReturn(1L);
+        when(coupon.getStatus()).thenReturn(CouponStatus.USED);
+
+        when(userCouponRepository.findAllById(List.of(1L)))
+                .thenReturn(List.of(coupon));
+
+        userCouponService.cancelCouponUsage(1L, req);
+
+        verify(coupon).cancel(100L);
+    }
+
+    @Test
+    @DisplayName("calculateSingleCoupon - 쿠폰 없으면 UserCouponNotFoundException")
+    void calculateSingleCoupon_notFound_throws() {
+        SingleCouponApplyRequest req = SingleCouponApplyRequest.builder()
+                .bookId(1L)
+                .bookPrice(BigDecimal.valueOf(10000))
+                .quantity(1)
+                .userCouponId(999L)
+                .build();
+
+        when(userCouponRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        SingleCouponApplyResponse response =
+                userCouponService.calculateSingleCoupon(1L, req);
+
+        assertThat(response.applicable()).isFalse();
+        assertThat(response.message()).contains("찾을 수 없습니다");
+    }
+
+    @Test
+    @DisplayName("calculateSingleCoupon - 소유자 불일치")
+    void calculateSingleCoupon_notOwner() {
+        SingleCouponApplyRequest req = SingleCouponApplyRequest.builder()
+                .bookId(1L)
+                .bookPrice(BigDecimal.valueOf(10000))
+                .quantity(1)
+                .userCouponId(1L)
+                .build();
+
+        UserCoupon coupon = mock(UserCoupon.class);
+        when(coupon.getUserId()).thenReturn(999L);
+
+        when(userCouponRepository.findById(1L))
+                .thenReturn(Optional.of(coupon));
+
+        SingleCouponApplyResponse response =
+                userCouponService.calculateSingleCoupon(1L, req);
+
+        assertThat(response.applicable()).isFalse();
+        assertThat(response.message()).contains("본인의 쿠폰");
     }
 
 
