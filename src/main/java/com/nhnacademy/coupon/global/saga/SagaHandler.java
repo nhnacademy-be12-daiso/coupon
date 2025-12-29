@@ -39,6 +39,7 @@ public class SagaHandler {
              *  매개변수로 넘어온 event DTO를 까보시면 필요한 정보들이 담겨 있습니다.
              *  그거 토대로 각자 로직에 구현해주면 됨 (재고 차감, 포인트 차감, 쿠폰 사용 처리)
              *
+             *
              *  만약 쿠폰 사용 처리 중 오류가 발생한다?
              *  그럼 하단에 CouponUpdateFailedException 던지면 됩니다!
              *
