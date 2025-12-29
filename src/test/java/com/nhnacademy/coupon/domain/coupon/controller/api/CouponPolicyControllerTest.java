@@ -137,4 +137,19 @@ class CouponPolicyControllerTest {
         Mockito.verify(couponPolicyService).updateCouponPolicy(eq(id), any(CouponPolicyUpdateRequest.class));
     }
 
+    @Test
+    @DisplayName("DELETE /api/coupons/policies/{id} - 정책 삭제: 204 반환 + 서비스 호출")
+    void deletePolicy_returns204() throws Exception {
+        // given
+        Long id = 1L;
+        Mockito.doNothing().when(couponPolicyService).deleteCouponPolicy(id);
+
+        // when & then
+        mockMvc.perform(delete("/api/coupons/policies/{id}", id))
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(couponPolicyService).deleteCouponPolicy(id);
+    }
+
+
 }

@@ -32,4 +32,6 @@ public interface CouponPolicyService {
 
     long issueBirthdayCouponsBulk(List<Long> userIds);
 
+    void deleteCouponPolicy(Long id);
+
 }

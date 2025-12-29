@@ -19,4 +19,5 @@ public interface CouponBookRepository extends JpaRepository<CouponBook, Long> {
     boolean existsByCouponPolicy_CouponPolicyIdAndBookId(Long couponPolicyId, Long bookId);
 
 
+    void deleteByCouponPolicy_CouponPolicyId(Long couponPolicyCouponPolicyId);
 }

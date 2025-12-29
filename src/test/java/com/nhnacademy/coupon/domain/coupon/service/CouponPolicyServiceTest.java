@@ -7,6 +7,8 @@ import com.nhnacademy.coupon.domain.coupon.dto.request.policy.CouponPolicyUpdate
 import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponCategory;
 import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyDeleteNotAllowedException;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
 import com.nhnacademy.coupon.domain.coupon.repository.*;
 import com.nhnacademy.coupon.domain.coupon.service.impl.CouponPolicyServiceImpl;
@@ -588,6 +590,65 @@ class CouponPolicyServiceTest {
                 couponPolicyService.getAvailableCouponsForBook(query);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("deleteCouponPolicy: 정책이 없으면 CouponPolicyNotFoundException")
+    void deleteCouponPolicy_notFound_throws() {
+        // given
+        Long policyId = 999L;
+        when(couponPolicyRepository.findById(policyId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> couponPolicyService.deleteCouponPolicy(policyId))
+                .isInstanceOf(CouponPolicyNotFoundException.class);
+
+        verify(couponPolicyRepository).findById(policyId);
+        verifyNoMoreInteractions(userCouponRepository, couponCategoryRepository, couponBookRepository);
+    }
+
+    @Test
+    @DisplayName("deleteCouponPolicy: 이미 발급된 쿠폰이 있으면 CouponPolicyDeleteNotAllowedException")
+    void deleteCouponPolicy_issuedExists_throws() {
+        // given
+        Long policyId = 1L;
+        CouponPolicy policy = mock(CouponPolicy.class);
+
+        when(couponPolicyRepository.findById(policyId)).thenReturn(Optional.of(policy));
+        when(userCouponRepository.countByCouponPolicy_CouponPolicyId(policyId)).thenReturn(1L);
+
+        // when & then
+        assertThatThrownBy(() -> couponPolicyService.deleteCouponPolicy(policyId))
+                .isInstanceOf(CouponPolicyDeleteNotAllowedException.class);
+
+        // 삭제 관련 repo 호출이 일어나면 안됨
+        verify(couponPolicyRepository).findById(policyId);
+        verify(userCouponRepository).countByCouponPolicy_CouponPolicyId(policyId);
+        verify(couponCategoryRepository, never()).deleteByCouponPolicy_CouponPolicyId(anyLong());
+        verify(couponBookRepository, never()).deleteByCouponPolicy_CouponPolicyId(anyLong());
+        verify(couponPolicyRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("deleteCouponPolicy: 발급된 쿠폰이 없으면 매핑 삭제 후 정책 삭제")
+    void deleteCouponPolicy_notIssued_deletesMappingsAndPolicy() {
+        // given
+        Long policyId = 1L;
+        CouponPolicy policy = mock(CouponPolicy.class);
+
+        when(couponPolicyRepository.findById(policyId)).thenReturn(Optional.of(policy));
+        when(userCouponRepository.countByCouponPolicy_CouponPolicyId(policyId)).thenReturn(0L);
+
+        // when
+        couponPolicyService.deleteCouponPolicy(policyId);
+
+        // then (호출 순서까지 검증하면 더 깔끔)
+        var inOrder = inOrder(couponPolicyRepository, userCouponRepository, couponCategoryRepository, couponBookRepository);
+        inOrder.verify(couponPolicyRepository).findById(policyId);
+        inOrder.verify(userCouponRepository).countByCouponPolicy_CouponPolicyId(policyId);
+        inOrder.verify(couponCategoryRepository).deleteByCouponPolicy_CouponPolicyId(policyId);
+        inOrder.verify(couponBookRepository).deleteByCouponPolicy_CouponPolicyId(policyId);
+        inOrder.verify(couponPolicyRepository).delete(policy);
     }
 
 

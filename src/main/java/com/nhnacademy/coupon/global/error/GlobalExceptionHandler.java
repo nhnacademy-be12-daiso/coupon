@@ -1,9 +1,6 @@
 package com.nhnacademy.coupon.global.error;
 
-import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
-import com.nhnacademy.coupon.domain.coupon.exception.DuplicateCouponException;
-import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
-import com.nhnacademy.coupon.domain.coupon.exception.UserCouponNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -49,11 +46,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 쿠폰 리소스는 존재하지만, 비즈니스 위반
-     * 현재 요청이 쿠폰 도메인의 규칙을 위반해서 처리할 수 없을 때 던지는 예외
-     * ex) 내 쿠폰이 아님, 이미 사용된 쿠폰, 만료된거, 이 도서에는 적용할 수 없음 이런것들
+     * 쿠폰 리소스는 존재하지만, 쿠폰 도메인의 비즈니스 규칙을 위반한 경우
+     *
+     * - 사용자 쿠폰 사용 시 규칙 위반
+     *   ex) 내 쿠폰이 아님, 이미 사용된 쿠폰, 만료된 쿠폰,
+     *       해당 도서/카테고리에 적용 불가
+     *
+     * - 관리자 쿠폰 정책 관리 시 규칙 위반
+     *   ex) 이미 발급된 쿠폰이 존재하여 정책 삭제/수정이 불가능한 경우
      */
-    @ExceptionHandler(InvalidCouponException.class)
+
+    @ExceptionHandler({InvalidCouponException.class,
+                       CouponPolicyDeleteNotAllowedException.class})
     public ResponseEntity<ErrorResponse> handleInvalidCoupon(
             InvalidCouponException ex,
             HttpServletRequest request) {

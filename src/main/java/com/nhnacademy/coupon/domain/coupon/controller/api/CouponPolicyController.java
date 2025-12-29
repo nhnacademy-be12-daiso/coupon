@@ -54,4 +54,12 @@ public class CouponPolicyController {
         return ResponseEntity.ok(updated);
     }
 
+    @Operation(summary = "쿠폰 정책 삭제", description = "쿠폰 정책을 삭제합니다. (이미 발급된 쿠폰이 있으면 삭제 불가)")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePolicy(@PathVariable Long id) {
+        couponPolicyService.deleteCouponPolicy(id);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
+
 }

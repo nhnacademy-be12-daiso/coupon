@@ -1,9 +1,6 @@
 package com.nhnacademy.coupon.global.error;
 
-import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
-import com.nhnacademy.coupon.domain.coupon.exception.DuplicateCouponException;
-import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
-import com.nhnacademy.coupon.domain.coupon.exception.UserCouponNotFoundException;
+import com.nhnacademy.coupon.domain.coupon.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -137,4 +134,6 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getStatus()).isEqualTo(500);
         assertThat(response.getBody().getMessage()).isEqualTo("예상치 못한 오류가 발생했습니다.");
     }
+
+
 }

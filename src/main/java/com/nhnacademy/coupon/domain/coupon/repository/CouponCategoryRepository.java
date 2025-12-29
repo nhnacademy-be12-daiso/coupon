@@ -16,4 +16,6 @@ public interface CouponCategoryRepository extends JpaRepository<CouponCategory, 
 
     // 특정 카테고리(여러 개)에 매핑된 정책들
     List<CouponCategory> findByCategoryIdIn(Collection<Long> categoryIds);
+
+    void deleteByCouponPolicy_CouponPolicyId(Long couponPolicyCouponPolicyId);
 }

@@ -8,6 +8,7 @@ import com.nhnacademy.coupon.domain.coupon.dto.response.categoryCoupon.CategoryC
 import com.nhnacademy.coupon.domain.coupon.dto.response.policy.CouponPolicyResponse;
 import com.nhnacademy.coupon.domain.coupon.dto.response.user.UserCouponResponse;
 import com.nhnacademy.coupon.domain.coupon.entity.*;
+import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyDeleteNotAllowedException;
 import com.nhnacademy.coupon.domain.coupon.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon.domain.coupon.exception.DuplicateCouponException;
 import com.nhnacademy.coupon.domain.coupon.exception.InvalidCouponException;
@@ -306,6 +307,25 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         // 성공 건수 집계
         long success = Arrays.stream(result).filter(x -> x > 0 || x == -2).count();
         return success;
+    }
+
+    @Override
+    @Transactional
+    public void deleteCouponPolicy(Long id) {
+        CouponPolicy policy = couponPolicyRepository.findById(id)
+                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+        long issuedCount = userCouponRepository.countByCouponPolicy_CouponPolicyId(id);
+
+        if(issuedCount > 0){
+            // 발급/소유 이력 있으면 삭제 금지 (update 로직과 일관)
+            throw new CouponPolicyDeleteNotAllowedException("이미 발급된 쿠폰이 존재하여 정책을 삭제할 수 없습니다. 비활성화만 가능합니다.");
+        }
+
+        // 발급 이력 없을 때만 강삭제 가능
+        couponCategoryRepository.deleteByCouponPolicy_CouponPolicyId(id); // 카테고리 쿠폰 테이블 정책 삭제
+        couponBookRepository.deleteByCouponPolicy_CouponPolicyId(id); // 도서 쿠폰 데이블 정책 삭제
+
+        couponPolicyRepository.delete(policy);
     }
 
 
