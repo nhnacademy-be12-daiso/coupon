@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.global.saga.event;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nhnacademy.coupon.global.saga.SagaHandler;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderConfirmedEvent implements SagaEvent {
-
+    @JsonProperty("eventId")
     private String eventId;
     private Long orderId;
     private Long userId;

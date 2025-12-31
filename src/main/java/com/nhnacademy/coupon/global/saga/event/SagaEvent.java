@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon.global.saga.event;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.nhnacademy.coupon.global.saga.SagaHandler;
@@ -16,6 +17,8 @@ import com.nhnacademy.coupon.global.saga.SagaHandler;
         @JsonSubTypes.Type(value = OrderCompensateEvent.class, name = "COMPENSATE")
 })
 public interface SagaEvent {
+
+    @JsonProperty("eventId")
     String getEventId();
     Long getOrderId();
     void accept(SagaHandler handler);

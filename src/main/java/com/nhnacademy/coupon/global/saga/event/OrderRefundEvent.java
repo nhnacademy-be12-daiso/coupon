@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon.global.saga.event;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nhnacademy.coupon.global.saga.SagaHandler;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderRefundEvent implements SagaEvent {
-
+    @JsonProperty("eventId")
     private String eventId;
     private Long orderId; // orderDetail이여도 됨
     private Long userId;
