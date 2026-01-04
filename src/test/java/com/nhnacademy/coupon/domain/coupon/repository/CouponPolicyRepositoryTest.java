@@ -4,6 +4,7 @@ import com.nhnacademy.coupon.domain.coupon.entity.CouponPolicy;
 import com.nhnacademy.coupon.domain.coupon.type.CouponPolicyStatus;
 import com.nhnacademy.coupon.domain.coupon.type.CouponType;
 import com.nhnacademy.coupon.domain.coupon.type.DiscountWay;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ class CouponPolicyRepositoryTest {
     private CouponPolicy welcomePolicy;
     private CouponPolicy birthdayPolicy;
     private CouponPolicy bookPolicy;
+
+    @Autowired
+    private EntityManager em; // <- 프록시 객채, 실제로 쓸 때 entityManger를 이용해서 호출함. 쓸때마다 가져옴
 
     @BeforeEach
     void setUp(){

@@ -64,6 +64,7 @@ public class BirthdayCouponListener {
             Message retryMessage = MessageBuilder
                     .fromMessage(message)
                     .setHeader("x-retry-count", nextRetry)
+                    .setCorrelationId(event.batchId())
                     .build();
 
             try {

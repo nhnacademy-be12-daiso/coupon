@@ -104,3 +104,7 @@ management:
   endpoint:
     health:
       show-details: always
+
+dooray:
+  webhook-url: https://nhnacademy.dooray.com/services/3204376758577275363/4236518853960442911/agWVPU3DTKej-qstj6FVCg
+  enabled: true
