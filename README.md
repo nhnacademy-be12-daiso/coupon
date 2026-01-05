@@ -25,7 +25,7 @@ Gateway, Eureka, RabbitMQ, Batch Server와 연동되어 동작합니다.
 
 [쿠폰 정책 관리 화면]
 
-![쿠폰 관리 화면](images/쿠폰정책관리화면.png)
+![쿠폰 관리 화면](images/쿠폰정책관리창.png)
 
 [마이페이지 내 쿠폰함]
 
